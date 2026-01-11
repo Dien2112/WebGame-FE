@@ -121,6 +121,7 @@ export default function Messages() {
                     <span className="text-xs opacity-70">{c.time}</span>
                   </div>
                   <p className="text-xs opacity-80 truncate">
+                    {c.messages[c.messages.length - 1]?.sender === "me" && "You: "}
                     {c.messages[c.messages.length - 1]?.text}
                   </p>
                 </div>
