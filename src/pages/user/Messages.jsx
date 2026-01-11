@@ -1,8 +1,40 @@
-import { Search, Send, Moon } from "lucide-react";
+import { Search, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
+import { useEffect, useRef, useState } from "react";
+
+// Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
+const mockConversations = [
+  {
+    id: 1,
+    name: "Team Liquid",
+    avatar: null,
+    status: "Online • In Lobby",
+    messages: [
+      {
+        id: 1,
+        sender: "them",
+        text: "Hey! Are you guys ready for the practice match tonight?",
+      },
+      { id: 2, sender: "them", text: "We have the server set up." },
+      { id: 3, sender: "me", text: "Yeah, we are just finishing up a review." },
+      {
+        id: 4,
+        sender: "them",
+        text: "Cool, Lobby code is 12345. See you there!",
+      },
+    ],
+  },
+  {
+    id: 2,
+    name: "FaZe Clan",
+    avatar: null,
+    status: "Offline",
+    messages: [{ id: 1, sender: "them", text: "GGWP! That was close." }],
+  },
+];
 
 export default function Messages() {
   return (
@@ -19,14 +51,27 @@ export default function Messages() {
 
         <div className="flex-1 overflow-y-auto space-y-1 px-2">
           {[
-            { name: "Team Liquid", msg: "Ready for the scrim?", time: "Now", active: true },
+            {
+              name: "Team Liquid",
+              msg: "Ready for the scrim?",
+              time: "Now",
+              active: true,
+            },
             { name: "FaZe Clan", msg: "GGWP! That was close.", time: "2h" },
             { name: "G2 Esports", msg: "Can we reschedule?", time: "1d" },
-            { name: "Cloud9", msg: "Check out the new roster update.", time: "3d" },
+            {
+              name: "Cloud9",
+              msg: "Check out the new roster update.",
+              time: "3d",
+            },
           ].map((c, i) => (
             <Card
               key={i}
-              className={`p-3 cursor-pointer transition ${c.active ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              className={`p-3 cursor-pointer transition ${
+                c.active
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+              }`}
             >
               <div className="flex items-center gap-3">
                 <Avatar className="bg-muted text-muted-foreground">
