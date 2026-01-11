@@ -30,14 +30,9 @@ export default function Header() {
     };
 
     return (
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <div className="w-full flex-1">
-                {/* Simple breadcrumb or title could go here */}
-                <h1 className="text-lg font-semibold md:text-xl">Welcome, {user?.username}</h1>
-            </div>
-            <Button variant="outline" size="icon" onClick={toggleTheme}>
+        <header className="flex h-14 justify-end items-center w-full gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <Button size="icon" onClick={toggleTheme}>
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                <span className="sr-only">Toggle theme</span>
             </Button>
         </header>
     );

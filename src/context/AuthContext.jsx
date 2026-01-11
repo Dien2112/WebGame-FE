@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
 const AuthContext = createContext(null);
 
@@ -9,26 +10,20 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         if (token) {
-            // Validate token or just decode user info if needed
-            // For now, we trust the token exists and try to fetch profile
-            fetchProfile(token);
+            fetchProfile();
         } else {
             setLoading(false);
         }
     }, [token]);
 
-    const fetchProfile = async (currentToken) => {
+    const fetchProfile = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                headers: { Authorization: `Bearer ${currentToken}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setUser(data.user);
-            } else {
-                logout();
-            }
+            // api.get handles Authorization header automatically via localStorage
+            const data = await api.get('/api/auth/me');
+            setUser(data.user);
         } catch (error) {
+            // If error (e.g. 401), we assume token is bad
+            console.error("Auth check failed:", error);
             logout();
         } finally {
             setLoading(false);

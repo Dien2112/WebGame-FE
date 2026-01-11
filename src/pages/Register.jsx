@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -17,17 +18,8 @@ export default function Register() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            });
-
-            const result = await res.json();
-
-            if (!res.ok) {
-                throw new Error(result.error || "Registration failed");
-            }
+            // api.post handles JSON stringify and base URL
+            await api.post("/api/auth/register", data);
 
             navigate("/login");
         } catch (err) {

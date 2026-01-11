@@ -5,10 +5,13 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
+import AdminStats from "./pages/admin/AdminStats";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminGames from "./pages/admin/AdminGames";
 import Games from "./pages/Games";
 import Friends from "./pages/Friends";
 import Messages from "./pages/Messages";
+import PublicRoute from "./components/PublicRoute";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, token } = useAuth();
@@ -20,8 +23,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect user to their dashboard if they try to access admin
-    return <Navigate to="/dashboard" replace />;
+    // Strict separation:
+    if (user.role === 'admin') {
+      return <Navigate to="/admin" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
@@ -34,7 +41,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
 
-          <Route element={<AuthLayout />}>
+          <Route element={
+            <PublicRoute>
+              <AuthLayout />
+            </PublicRoute>
+          }>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
           </Route>
@@ -43,7 +54,7 @@ export default function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['user']}>
                   <UserDashboard />
                 </ProtectedRoute>
               }
@@ -51,7 +62,7 @@ export default function App() {
             <Route
               path="/dashboard/games"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['user']}>
                   <Games />
                 </ProtectedRoute>
               }
@@ -59,7 +70,7 @@ export default function App() {
             <Route
               path="/dashboard/friends"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['user']}>
                   <Friends />
                 </ProtectedRoute>
               }
@@ -67,16 +78,36 @@ export default function App() {
             <Route
               path="/dashboard/messages"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['user']}>
                   <Messages />
                 </ProtectedRoute>
               }
             />
             <Route
               path="/admin"
+              element={<Navigate to="/admin/stats" replace />}
+            />
+            <Route
+              path="/admin/stats"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
+                  <AdminStats />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/games"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminGames />
                 </ProtectedRoute>
               }
             />

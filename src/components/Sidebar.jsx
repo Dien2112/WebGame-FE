@@ -13,16 +13,16 @@ export default function Sidebar({ className }) {
         navigate("/login");
     };
 
-    const navItems = [
+    const navItems = user?.role === 'admin' ? [
+        { to: "/admin/stats", label: "Statistics", icon: LayoutDashboard },
+        { to: "/admin/users", label: "Users", icon: Users },
+        { to: "/admin/games", label: "Game Config", icon: Trophy }
+    ] : [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/dashboard/games", label: "Games", icon: Trophy },
         { to: "/dashboard/friends", label: "Friends", icon: Users },
         { to: "/dashboard/messages", label: "Messages", icon: MessageSquare },
     ];
-
-    if (user?.role === 'admin') {
-        navItems.push({ to: "/admin", label: "Admin Panel", icon: LayoutDashboard });
-    }
 
     return (
         <div className={cn("flex flex-col h-screen border-r bg-muted/40", className)}>
@@ -51,7 +51,7 @@ export default function Sidebar({ className }) {
                 </nav>
             </div>
             <div className="mt-auto p-4 border-t">
-                <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleLogout}>
+                <Button className="w-full justify-start gap-2" onClick={handleLogout}>
                     <LogOut className="h-4 w-4" />
                     Logout
                 </Button>

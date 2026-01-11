@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,11 +19,7 @@ export default function Friends() {
 
     const fetchFriends = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/friends`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!res.ok) throw new Error("Failed to fetch friends");
-            const data = await res.json();
+            const data = await api.get('/api/friends');
             setFriends(data);
         } catch (err) {
             setError(err.message);
@@ -37,7 +34,7 @@ export default function Friends() {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Friends</h1>
+                <h3 className="text-2xl font-bold">Friends</h3>
                 <Button disabled>Add Friend</Button>
             </div>
 

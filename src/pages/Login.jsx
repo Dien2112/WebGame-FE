@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -19,17 +20,7 @@ export default function Login() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            });
-
-            const result = await res.json();
-
-            if (!res.ok) {
-                throw new Error(result.error || "Login failed");
-            }
+            const result = await api.post("/api/auth/login", data);
 
             login(result.token, result.user);
 
