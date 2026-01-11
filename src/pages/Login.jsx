@@ -21,6 +21,7 @@ export default function Login() {
         setError("");
         try {
             const result = await api.post("/api/auth/login", data);
+            console.log("Login API Result:", result);
 
             login(result.token, result.user);
 

@@ -2,10 +2,10 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
-import { LayoutDashboard, Users, MessageSquare, Trophy, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, Trophy, LogOut, ChartBar, User } from "lucide-react";
 
-export default function Sidebar({ className }) {
-    const { user, logout } = useAuth();
+export default function Sidebar({ isAdmin, className }) {
+    const { logout } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -13,15 +13,17 @@ export default function Sidebar({ className }) {
         navigate("/login");
     };
 
-    const navItems = user?.role === 'admin' ? [
+    const navItems = isAdmin ? [
         { to: "/admin/stats", label: "Statistics", icon: LayoutDashboard },
         { to: "/admin/users", label: "Users", icon: Users },
         { to: "/admin/games", label: "Game Config", icon: Trophy }
     ] : [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { to: "/dashboard/ranking", label: "Ranking", icon: ChartBar },
         { to: "/dashboard/games", label: "Games", icon: Trophy },
         { to: "/dashboard/friends", label: "Friends", icon: Users },
         { to: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+        { to: "/dashboard/profile", label: "Profile", icon: User },
     ];
 
     return (
