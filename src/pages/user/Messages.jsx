@@ -115,7 +115,7 @@ export default function Messages() {
                     {c.name[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold text-sm">{c.name}</p>
                     <span className="text-xs opacity-70">{c.time}</span>
