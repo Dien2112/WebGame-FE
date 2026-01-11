@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
+import { set } from "zod";
 
 // Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
 const mockConversations = [
@@ -37,6 +38,53 @@ const mockConversations = [
 ];
 
 export default function Messages() {
+  //STATE
+  const [conversations, setConversations] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [messageInput, setMessageInput] = useState("");
+
+  //REF
+  const messagesEndRef = useRef(null);
+
+  //EFFECTS: Giả sử gọi API thành công
+  useEffect(() => {
+    setConversations(mockConversations);
+    setSelectedId(mockConversations[0].id);
+  }, []);
+
+  //EFFECTS: Cập nhật cuộc trò chuyện được chọn
+  const selectedConversation = conversations.find((c) => c.id === selectedId);
+
+  //HANDLERS
+  const handleSendMessage = () => {
+    if (messageInput.trim() === "" || !selectedConversation) return;
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === selectedId
+          ? {
+              ...conv,
+              messages: [
+                ...conv.messages,
+                {
+                  id: conv.messages.length + 1,
+                  sender: "me",
+                  text: messageInput,
+                },
+              ],
+            }
+          : conv
+      )
+    );
+    setMessageInput("");
+  };
+
+  //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedConversation?.messages]);
+
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
       {/* LEFT: Conversation list */}
@@ -50,39 +98,31 @@ export default function Messages() {
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 px-2">
-          {[
-            {
-              name: "Team Liquid",
-              msg: "Ready for the scrim?",
-              time: "Now",
-              active: true,
-            },
-            { name: "FaZe Clan", msg: "GGWP! That was close.", time: "2h" },
-            { name: "G2 Esports", msg: "Can we reschedule?", time: "1d" },
-            {
-              name: "Cloud9",
-              msg: "Check out the new roster update.",
-              time: "3d",
-            },
-          ].map((c, i) => (
+          {conversations.map((c) => (
             <Card
-              key={i}
+              key={c.id}
+              onClick={() => setSelectedId(c.id)}
               className={`p-3 cursor-pointer transition ${
-                c.active
+                c.id === selectedId
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Avatar className="bg-muted text-muted-foreground">
-                  <AvatarFallback>{c.name[0]}</AvatarFallback>
+                <Avatar>
+                  <AvatarImage src={c.avatar || undefined} />
+                  <AvatarFallback className="bg-muted text-muted-foreground">
+                    {c.name[0]}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold text-sm">{c.name}</p>
                     <span className="text-xs opacity-70">{c.time}</span>
                   </div>
-                  <p className="text-xs opacity-80 truncate">{c.msg}</p>
+                  <p className="text-xs opacity-80 truncate">
+                    {c.messages[c.messages.length - 1]?.text}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -92,47 +132,67 @@ export default function Messages() {
 
       {/* RIGHT: Chat window */}
       <div className="flex-1 flex flex-col">
-        {/* Chat header */}
-        <div className="h-16 border-b flex items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback>T</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">Team Liquid</p>
-              <p className="text-xs text-muted-foreground">Online • In Lobby</p>
+        {selectedConversation ? (
+          <>
+            {/* Chat header */}
+            <div className="h-16 border-b flex items-center justify-between px-6">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={selectedConversation.avatar || undefined} />
+                  <AvatarFallback>
+                    {selectedConversation.name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{selectedConversation.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedConversation.status}
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="flex justify-start">
-            <div className="max-w-[60%] bg-muted rounded-2xl px-4 py-2 text-sm">
-              Hey! Are you guys ready for the practice match tonight?
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedConversation.messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${
+                    m.sender === "me" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${
+                      m.sender === "me"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
 
-          <div className="flex justify-start">
-            <div className="max-w-[60%] bg-muted rounded-2xl px-4 py-2 text-sm">
-              We have the server set up.
+            {/* Input */}
+            <div className="p-4 border-t flex items-center gap-3">
+              <Input
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                placeholder="Type your message..."
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              />
+              <Button size="icon" onClick={handleSendMessage}>
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            Select a conversation to start chatting.
           </div>
-
-          <div className="flex justify-end">
-            <div className="max-w-[60%] bg-primary text-primary-foreground rounded-2xl px-4 py-2 text-sm">
-              Yeah, we are just finishing up a review.
-            </div>
-          </div>
-        </div>
-
-        {/* Input */}
-        <div className="p-4 border-t flex items-center gap-3">
-          <Input placeholder="Type your message..." className="flex-1" />
-          <Button size="icon">
-            <Send className="w-4 h-4" />
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );
