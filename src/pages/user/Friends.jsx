@@ -132,7 +132,7 @@ export default function Friends() {
                                                 user.email.toLowerCase().includes(searchQuery.toLowerCase())
                                             )
                                             .map((user) => (
-                                                <div key={user.user_id} className="p-3 hover:bg-gray-50 flex items-center gap-3">
+                                                <div key={user.id} className="p-3 hover:bg-gray-50 flex items-center gap-3">
                                                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center overflow-hidden flex-shrink-0">
                                                         {user.avatar_url ? (
                                                             <img
@@ -224,25 +224,25 @@ export default function Friends() {
                         </div>
                     ) : (
                         friends.map((item) => (
-                            <Card key={item.friendship_id} className="hover:shadow-md transition-shadow">
+                            <Card key={item.id} className="hover:shadow-md transition-shadow">
                                 <CardContent className="flex items-center gap-4 p-4">
                                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
-                                        {item.friend.avatar_url ? (
+                                        {item.friend_info.avatar_url ? (
                                             <img
-                                                src={item.friend.avatar_url}
-                                                alt={item.friend.username}
+                                                src={item.friend_info.avatar_url}
+                                                alt={item.friend_info.username}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
                                             <span className="font-semibold text-lg text-white uppercase">
-                                                {item.friend.username[0]}
+                                                {item.friend_info.username[0]}
                                             </span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{item.friend.username}</p>
+                                        <p className="font-medium truncate">{item.friend_info.username}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {item.friend.email}
+                                            {item.friend_info.email}
                                         </p>
                                     </div>
                                     <Button
@@ -269,25 +269,25 @@ export default function Friends() {
                         </div>
                     ) : (
                         friendRequests.map((request) => (
-                            <Card key={request.request_id} className="hover:shadow-md transition-shadow">
+                            <Card key={request.id} className="hover:shadow-md transition-shadow">
                                 <CardContent className="flex items-center gap-4 p-4">
                                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center overflow-hidden">
-                                        {request.sender.avatar_url ? (
+                                        {request.requester_info.avatar_url ? (
                                             <img
-                                                src={request.sender.avatar_url}
-                                                alt={request.sender.username}
+                                                src={request.requester_info.avatar_url}
+                                                alt={request.requester_info.username}
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
                                             <span className="font-semibold text-lg text-white uppercase">
-                                                {request.sender.username[0]}
+                                                {request.requester_info.username[0]}
                                             </span>
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{request.sender.username}</p>
+                                        <p className="font-medium truncate">{request.requester_info.username}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {request.sender.email}
+                                            {request.requester_info.email}
                                         </p>
                                     </div>
                                     <div className="flex gap-2">
