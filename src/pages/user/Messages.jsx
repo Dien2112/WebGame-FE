@@ -91,7 +91,7 @@ export default function Messages() {
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
   //HANDLERS
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
 
     // Optimistic Update (Visual Only for now, no API call requested yet)
@@ -100,6 +100,12 @@ export default function Messages() {
     // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now 
     // OR disable it? "Comment all the mockConversation... set the one with REAL Messages... No more".
     // I will leave the existing handleSendMessage but it won't persist to DB.
+    const tempMessage = {
+      id: Date.now(), // tạm thời
+      sender: "me",
+      text: messageInput,
+      created_at: new Date().toISOString(),
+    };
 
     setConversations((prev) =>
       prev.map((conv) =>
@@ -107,18 +113,24 @@ export default function Messages() {
           ? {
             ...conv,
             messages: [
-              ...conv.messages,
-              {
-                id: conv.messages.length + 1, // Temp ID
-                sender: "me",
-                text: messageInput,
-              },
+              ...conv.messages, tempMessage
             ],
           }
           : conv
       )
     );
     setMessageInput("");
+
+    try {
+      await api.post('/api/messages', {
+        userId: selectedId,
+        text: tempMessage.text,
+      });
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      // Optionally, revert optimistic update here
+    }
+
   };
 
   //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
