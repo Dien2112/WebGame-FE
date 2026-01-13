@@ -12,6 +12,7 @@ import Friends from "./pages/user/Friends";
 import Messages from "./pages/user/Messages";
 import Ranking from "./pages/user/Ranking";
 import Profile from "./pages/user/Profile";
+import Achievements from "./pages/user/Achievements";
 import PublicRoute from "./components/PublicRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/dashboard/messages" element={<Messages />} />
             <Route path="/dashboard/ranking" element={<Ranking />} />
             <Route path="/dashboard/profile" element={<Profile />} />
+            <Route path="/dashboard/achievements" element={<Achievements />} />
             {/* Fallback for unknown dashboard routes */}
             <Route path="/dashboard/*" element={<div>Page under construction</div>} />
           </Route>
