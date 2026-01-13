@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
-import { LayoutDashboard, Users, MessageSquare, Trophy, LogOut, ChartBar, User } from "lucide-react";
+import { LayoutDashboard, Users, MessageSquare, Trophy, LogOut, ChartBar, User, Award } from "lucide-react";
 
 export default function Sidebar({ isAdmin, className }) {
     const { logout } = useAuth();
@@ -23,6 +23,7 @@ export default function Sidebar({ isAdmin, className }) {
         { to: "/dashboard/games", label: "Games", icon: Trophy },
         { to: "/dashboard/friends", label: "Friends", icon: Users },
         { to: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+        { to: "/dashboard/achievements", label: "Achievements", icon: Award },
         { to: "/dashboard/profile", label: "Profile", icon: User },
     ];
 
