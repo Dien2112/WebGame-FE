@@ -108,9 +108,6 @@ export default function Messages() {
 
         const messages = res;
 
-        console.log("RAW RES:", res);
-        console.log("RES.DATA:", res?.data);
-
         if (!messages || messages.length === 0) return;
 
         setConversations((prev) => {
@@ -130,21 +127,6 @@ export default function Messages() {
             const partnerId =
               msg.sender_id === token.userId ? msg.receiver_id : msg.sender_id;
 
-            // Guard: skip nếu partnerId không xác định được
-            if (!partnerId) {
-              console.warn(
-                "Partner ID not determined for message:",
-                msg,
-                "sender_id:",
-                msg.sender_id,
-                "receiver_id:",
-                msg.receiver_id,
-                "token.userId:",
-                token.userId
-              );
-              return;
-            }
-
             let conv = updated.find((c) => c.id === partnerId);
 
             if (!conv) {
@@ -155,12 +137,10 @@ export default function Messages() {
             // Prevent duplicate: check ID strict hơn
             const exists = conv.messages.some((m) => m.id === msg.id);
             if (exists) {
-              console.log("Message already exists, skipping:", msg.id);
               return;
             }
 
             // unshift vì backend truyền DESC (mới → cũ)
-            console.log("Adding message to conversation", partnerId, ":", msg.id);
             conv.messages.unshift({
               id: msg.id,
               sender: msg.sender_id === token.userId ? "me" : "them",
@@ -173,7 +153,6 @@ export default function Messages() {
         });
 
         setLastSyncAt(messages[messages.length - 1].created_at);
-        console.log(messages[messages.length - 1].text);
       } catch (e) {
         console.error("Sync failed", e);
       }
@@ -189,14 +168,8 @@ export default function Messages() {
   const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
 
-    // Optimistic Update (Visual Only for now, no API call requested yet)
-    // "3. ... No more (dont imply send and 5s-reset yet)" -> implies just viewing.
-    // But existing UI has send logic. I should probably keep the local state update so it feels responsive?
-    // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now
-    // OR disable it? "Comment all the mockConversation... set the one with REAL Messages... No more".
-    // I will leave the existing handleSendMessage but it won't persist to DB.
     const tempMessage = {
-      id: Date.now(), // tạm thời
+      id: Date.now(), 
       sender: "me",
       text: messageInput,
       created_at: new Date().toISOString(),
@@ -222,7 +195,7 @@ export default function Messages() {
       });
     } catch (err) {
       console.error("Failed to send message:", err);
-    } // Optionally, revert optimistic update here }
+    } 
   };
 
   //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
