@@ -137,7 +137,9 @@ export default function Messages() {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [selectedConversation?.messages]);
-
+  const orderedMessages = selectedConversation
+  ? [...selectedConversation.messages].reverse()
+  : [];
 
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
@@ -214,7 +216,7 @@ export default function Messages() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {selectedConversation.messages.map((m) => (
+              {orderedMessages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
