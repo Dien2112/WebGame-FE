@@ -113,8 +113,8 @@ export default function Messages() {
           ? {
             ...conv,
             messages: [
-              ...conv.messages,
               tempMessage,
+              ...conv.messages,
             ],
           }
           : conv
@@ -136,7 +136,7 @@ export default function Messages() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedConversation?.messages]);
+  }, [selectedConversation?.messages.length]);
   const orderedMessages = selectedConversation
   ? [...selectedConversation.messages].reverse()
   : [];
