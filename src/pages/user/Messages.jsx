@@ -48,6 +48,7 @@ export default function Messages() {
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
+  const [lastSyncAt, setLastSyncAt] = useState(null);
 
   //REF
   const messagesEndRef = useRef(null);
@@ -56,28 +57,37 @@ export default function Messages() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const data = await api.get('/api/messages');
+        const data = await api.get("/api/messages");
 
         // Data format check: The API returns:
         // [ { id (partnerId), name, avatar, status (bool), messages: [{id, content, is_sender, created_at}] } ]
         // UI expects:
         // { id, name, avatar, status (string), messages: [ { id, sender: 'me'|'them', text } ] }
 
-        const formatted = data.map(c => ({
+        const formatted = data.map((c) => ({
           id: c.id,
           name: c.name,
           avatar: c.avatar,
           status: c.status ? "Online" : "Offline", // API returns boolean
-          messages: c.messages.map(m => ({
+          messages: c.messages.map((m) => ({
             id: m.id,
-            sender: m.is_sender ? 'me' : 'them',
-            text: m.content
-          }))
+            sender: m.is_sender ? "me" : "them",
+            text: m.content,
+            created_at: m.created_at,
+          })),
         }));
 
         setConversations(formatted);
         if (formatted.length > 0) {
           setSelectedId(formatted[0].id);
+          const allMessages = formatted.flatMap((c) => c.messages);
+
+          if (allMessages.length > 0) {
+            const newest = allMessages.reduce((a, b) =>
+              new Date(a.created_at) > new Date(b.created_at) ? a : b
+            );
+            setLastSyncAt(newest.created_at);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -86,6 +96,91 @@ export default function Messages() {
 
     fetchMessages();
   }, [token]);
+
+  useEffect(() => {
+    //if (!lastSyncAt) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get("/api/messages/sync", {
+          params: { since: lastSyncAt ?? "1970-01-01T00:00:00.000Z"},
+        });
+
+        const messages = res;
+
+        console.log("RAW RES:", res);
+        console.log("RES.DATA:", res?.data);
+
+        if (!messages || messages.length === 0) return;
+
+        setConversations((prev) => {
+          const updated = [...prev];
+
+          messages.forEach((msg) => {
+            console.log("Processing message:", {
+              id: msg.id,
+              sender_id: msg.sender_id,
+              receiver_id: msg.receiver_id,
+              token_userId: token.userId,
+              content: msg.content,
+            });
+
+            if (msg.sender_id === token.userId) return; // Skip messages sent by self
+
+            const partnerId =
+              msg.sender_id === token.userId ? msg.receiver_id : msg.sender_id;
+
+            // Guard: skip nếu partnerId không xác định được
+            if (!partnerId) {
+              console.warn(
+                "Partner ID not determined for message:",
+                msg,
+                "sender_id:",
+                msg.sender_id,
+                "receiver_id:",
+                msg.receiver_id,
+                "token.userId:",
+                token.userId
+              );
+              return;
+            }
+
+            let conv = updated.find((c) => c.id === partnerId);
+
+            if (!conv) {
+              console.log("Creating new conversation for partner:", partnerId);
+              return; // For now, skip messages from unknown conversations
+            }
+
+            // Prevent duplicate: check ID strict hơn
+            const exists = conv.messages.some((m) => m.id === msg.id);
+            if (exists) {
+              console.log("Message already exists, skipping:", msg.id);
+              return;
+            }
+
+            // unshift vì backend truyền DESC (mới → cũ)
+            console.log("Adding message to conversation", partnerId, ":", msg.id);
+            conv.messages.unshift({
+              id: msg.id,
+              sender: msg.sender_id === token.userId ? "me" : "them",
+              text: msg.content,
+              created_at: msg.created_at,
+            });
+          });
+
+          return updated;
+        });
+
+        setLastSyncAt(messages[messages.length - 1].created_at);
+        console.log(messages[messages.length - 1].text);
+      } catch (e) {
+        console.error("Sync failed", e);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [token.userId]);
 
   //EFFECTS: Cập nhật cuộc trò chuyện được chọn
   const selectedConversation = conversations.find((c) => c.id === selectedId);
@@ -97,38 +192,37 @@ export default function Messages() {
     // Optimistic Update (Visual Only for now, no API call requested yet)
     // "3. ... No more (dont imply send and 5s-reset yet)" -> implies just viewing.
     // But existing UI has send logic. I should probably keep the local state update so it feels responsive?
-    // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now 
+    // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now
     // OR disable it? "Comment all the mockConversation... set the one with REAL Messages... No more".
     // I will leave the existing handleSendMessage but it won't persist to DB.
-    const tempMessage = { 
-      id: Date.now(), // tạm thời 
-      sender: "me", 
-      text: messageInput, 
-      created_at: new Date().toISOString(), 
+    const tempMessage = {
+      id: Date.now(), // tạm thời
+      sender: "me",
+      text: messageInput,
+      created_at: new Date().toISOString(),
     };
 
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === selectedId
           ? {
-            ...conv,
-            messages: [
-              tempMessage,
-              ...conv.messages,
-            ],
-          }
+              ...conv,
+              messages: [tempMessage, ...conv.messages],
+            }
           : conv
       )
     );
     setMessageInput("");
-    try { 
-      await api.post('/api/messages', { 
-        userId: selectedId, 
-        text: tempMessage.text, 
-      }); 
-    } catch (err) { 
+    // Cập nhật lastSyncAt để prevent duplicate khi sync
+    setLastSyncAt(new Date().toISOString());
+    try {
+      await api.post("/api/messages", {
+        userId: selectedId,
+        text: tempMessage.text,
+      });
+    } catch (err) {
       console.error("Failed to send message:", err);
-     } // Optionally, revert optimistic update here }
+    } // Optionally, revert optimistic update here }
   };
 
   //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
@@ -138,8 +232,8 @@ export default function Messages() {
     }
   }, [selectedConversation?.messages.length]);
   const orderedMessages = selectedConversation
-  ? [...selectedConversation.messages].reverse()
-  : [];
+    ? [...selectedConversation.messages].reverse()
+    : [];
 
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
@@ -158,16 +252,17 @@ export default function Messages() {
             <Card
               key={c.id}
               onClick={() => setSelectedId(c.id)}
-              className={`p-3 cursor-pointer transition ${c.id === selectedId
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
-                }`}
+              className={`p-3 cursor-pointer transition ${
+                c.id === selectedId
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
+              }`}
             >
               <div className="flex items-center gap-3">
                 <Avatar>
                   <AvatarImage src={c.avatar || undefined} />
                   <AvatarFallback className="bg-muted text-muted-foreground">
-                    {c.name ? c.name[0] : '?'}
+                    {c.name ? c.name[0] : "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -180,8 +275,9 @@ export default function Messages() {
                   <p className="text-xs opacity-80 truncate">
                     {c.messages.length > 0 && (
                       <>
-                        {c.messages[c.messages.length - 1]?.sender === "me" && "You: "}
-                        {c.messages[c.messages.length - 1]?.text}
+                        {c.messages[0]?.sender === "me" &&
+                          "You: "}
+                        {c.messages[0]?.text}
                       </>
                     )}
                   </p>
@@ -202,7 +298,9 @@ export default function Messages() {
                 <Avatar>
                   <AvatarImage src={selectedConversation.avatar || undefined} />
                   <AvatarFallback>
-                    {selectedConversation.name ? selectedConversation.name[0] : '?'}
+                    {selectedConversation.name
+                      ? selectedConversation.name[0]
+                      : "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -219,14 +317,16 @@ export default function Messages() {
               {orderedMessages.map((m) => (
                 <div
                   key={m.id}
-                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
-                    }`}
+                  className={`flex ${
+                    m.sender === "me" ? "justify-end" : "justify-start"
+                  }`}
                 >
                   <div
-                    className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                      }`}
+                    className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${
+                      m.sender === "me"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
                   >
                     {m.text}
                   </div>
