@@ -74,7 +74,7 @@ const LINE_ICON = [
     [0,0,0,0,0,0,0,0]
 ];
 
-const MENU_ITEMS = [
+export const MENU_ITEMS = [
   { id: 'CARO_5', label: 'CARO5', icon: CARO_ICON },
   { id: 'CARO_4', label: 'CARO4', icon: CARO_ICON },
   { id: 'TICTACTOE', label: 'X-O', icon: TICTACTOE_ICON },
@@ -105,7 +105,7 @@ export const drawSprite = (grid, sprite, top, left, color) => {
 };
 
 export const updateMenu = (state, input) => {
-  let { selectedIndex } = state;
+  let selectedIndex = state.selectedIndex;
 
   if (input === BUTTONS.RIGHT) {
     if (selectedIndex < MENU_ITEMS.length - 1) {
@@ -124,6 +124,9 @@ export const updateMenu = (state, input) => {
 
 export const renderMenu = (state, tick) => {
   const grid = createEmptyGrid();
+  
+  if (!MENU_ITEMS[state.selectedIndex]) return grid;
+
   const item = MENU_ITEMS[state.selectedIndex];
   
   // Render Label (Game Name) at Top
@@ -141,10 +144,9 @@ export const renderMenu = (state, tick) => {
   const icon = item.icon;
   if (icon) {
       // Approximate centering based on icon size
-      const iconH = icon.length;
       const iconW = icon[0].length; // assuming rectangle
-      const iconY = 8; // push down
       const iconX = Math.floor((20 - iconW) / 2);
+      const iconY = 8; // push down
       drawSprite(grid, icon, iconY, iconX, COLORS.BLUE); // Use Blue for icon
   }
 

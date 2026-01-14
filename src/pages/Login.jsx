@@ -29,7 +29,7 @@ export default function Login() {
             if (result.user.role === 'admin') {
                 navigate("/admin");
             } else {
-                navigate("/dashboard");
+                navigate("/dashboard/games");
             }
 
         } catch (err) {

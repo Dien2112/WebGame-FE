@@ -18,11 +18,11 @@ export default function Sidebar({ isAdmin, className }) {
         { to: "/admin/users", label: "Users", icon: Users },
         { to: "/admin/games", label: "Game Config", icon: Trophy }
     ] : [
-        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { to: "/dashboard/ranking", label: "Ranking", icon: ChartBar },
+        //{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/dashboard/games", label: "Games", icon: Trophy },
         { to: "/dashboard/friends", label: "Friends", icon: Users },
         { to: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+        { to: "/dashboard/ranking", label: "Ranking", icon: ChartBar },
         { to: "/dashboard/achievements", label: "Achievements", icon: Award },
         { to: "/dashboard/profile", label: "Profile", icon: User },
     ];
