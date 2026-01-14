@@ -1,7 +1,9 @@
+import RetroConsole from '@/components/games/RetroConsole';
+
 export default function Games() {
     return (
-        <div>
-            <h3 className="text-2xl font-bold mb-4">Games</h3>
+        <div className="p-4 flex justify-center w-full">
+            <RetroConsole />
         </div>
     );
 }
