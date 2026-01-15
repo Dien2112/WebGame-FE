@@ -30,8 +30,12 @@ export default function Header() {
     };
 
     return (
-        <header className="flex h-14 justify-end items-center w-full gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <Button size="icon" onClick={toggleTheme}>
+        <header className="flex h-14 justify-end items-center w-full gap-4 px-4 lg:h-[60px] lg:px-6">
+            <Button 
+                size="icon" 
+                onClick={toggleTheme}
+                className=""
+            >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
         </header>

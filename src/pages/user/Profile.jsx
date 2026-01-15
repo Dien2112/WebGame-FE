@@ -46,14 +46,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-gray-900 dark:text-white">Hồ sơ cá nhân</h2>
+      <h2 className="text-3xl font-bold text-[#072D44] dark:text-white">Hồ sơ cá nhân</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profile Info */}
-        <Card>
+        <Card className="border-2 bg-white dark:bg-[#16213e]" style={{ borderColor: '#D0D7E1' }}>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="w-5 h-5" />
+            <CardTitle className="flex items-center space-x-2 text-[#072D44] dark:text-white">
+              <User className="w-5 h-5" style={{ color: '#5790AB' }} />
               <span>Thông tin</span>
             </CardTitle>
           </CardHeader>
@@ -76,7 +76,8 @@ export default function ProfilePage() {
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                     rows={3}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#0f3460] dark:text-white"
+                    style={{ borderColor: '#D0D7E1', backgroundColor: 'white', color: '#072D44' }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -97,59 +98,59 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Tên</p>
-                  <p className="text-gray-900 dark:text-white">{auth?.user?.name || 'chu'}</p>
+                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Tên</p>
+                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.name || 'chu'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                  <p className="text-gray-900 dark:text-white">{auth?.user?.email || 'user@example.com'}</p>
+                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
+                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.email || 'user@example.com'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Giới thiệu</p>
-                  <p className="text-gray-900 dark:text-white">{auth?.user?.bio || 'Chưa có giới thiệu'}</p>
+                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Giới thiệu</p>
+                  <p className="text-[#072D44] dark:text-white">{auth?.user?.bio || 'Chưa có giới thiệu'}</p>
                 </div>
-                <Button onClick={() => setIsEditing(true)}>Chính sửa hồ sơ</Button>
+                <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <Card>
+        <Card className="border-2 bg-white dark:bg-[#16213e]" style={{ borderColor: '#D0D7E1' }}>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Trophy className="w-5 h-5" />
+            <CardTitle className="flex items-center space-x-2 text-[#072D44] dark:text-white">
+              <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
               <span>Thống kê</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Target className="w-5 h-5 text-green-500" />
-                <span className="text-gray-900 dark:text-white">Tổng số trận</span>
+                <Target className="w-5 h-5" style={{ color: '#5790AB' }} />
+                <span className="text-[#072D44] dark:text-white">Tổng số trận</span>
               </div>
-              <span className="text-gray-900 dark:text-white">{auth?.user?.totalGames || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.totalGames || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="text-gray-900 dark:text-white">Thắng</span>
+                <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
+                <span className="text-[#072D44] dark:text-white">Thắng</span>
               </div>
-              <span className="text-gray-900 dark:text-white">{auth?.user?.wins || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.wins || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Target className="w-5 h-5 text-red-500" />
-                <span className="text-gray-900 dark:text-white">Thua</span>
+                <Target className="w-5 h-5" style={{ color: '#9CCDDB' }} />
+                <span className="text-[#072D44] dark:text-white">Thua</span>
               </div>
-              <span className="text-gray-900 dark:text-white">{auth?.user?.losses || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.losses || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
-                <span className="text-gray-900 dark:text-white">Tỷ lệ thắng</span>
+                <Calendar className="w-5 h-5" style={{ color: '#5790AB' }} />
+                <span className="text-[#072D44] dark:text-white">Tỷ lệ thắng</span>
               </div>
-              <span className="text-gray-900 dark:text-white">
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
                 {auth?.user?.totalGames
                   ? Math.round(((auth?.user?.wins || 0) / auth.user.totalGames) * 100)
                   : 0}%
