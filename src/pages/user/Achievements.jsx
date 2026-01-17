@@ -34,36 +34,36 @@ export default function Achievements() {
   const getIcon = (type) => {
     switch (type) {
       case 'first_win':
-        return <Trophy className="w-8 h-8 text-yellow-500" />;
+        return <Trophy className="w-8 h-8" style={{ color: '#5790AB' }} />;
       case 'high_score':
-        return <Star className="w-8 h-8 text-purple-500" />;
+        return <Star className="w-8 h-8" style={{ color: '#5790AB' }} />;
       case 'games_played':
-        return <Medal className="w-8 h-8 text-blue-500" />;
+        return <Medal className="w-8 h-8" style={{ color: '#064469' }} />;
       default:
-        return <Award className="w-8 h-8 text-green-500" />;
+        return <Award className="w-8 h-8" style={{ color: '#5790AB' }} />;
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-gray-900 dark:text-white">Thành tựu</h2>
+        <h2 className="text-3xl font-bold text-[#072D44] dark:text-white">Thành tựu</h2>
         <div className="flex items-center space-x-2">
-          <Trophy className="w-5 h-5 text-yellow-500" />
-          <span className="text-gray-900 dark:text-white">
+          <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
+          <span className="font-semibold text-[#072D44] dark:text-white">
             {achievements.length} thành tựu
           </span>
         </div>
       </div>
 
       {achievements.length === 0 ? (
-        <Card>
+        <Card className="border-2 bg-white dark:bg-[#16213e]" style={{ borderColor: '#D0D7E1' }}>
           <CardContent className="p-12 text-center">
-            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
+            <Trophy className="w-16 h-16 mx-auto mb-4" style={{ color: '#9CCDDB' }} />
+            <p className="text-lg text-[#5790AB] dark:text-[#9CCDDB]">
               Bạn chưa mở khóa thành tựu nào
             </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+            <p className="text-sm mt-2 text-[#9CCDDB] dark:text-[#5790AB]">
               Chơi game để nhận thành tựu!
             </p>
           </CardContent>
@@ -71,20 +71,20 @@ export default function Achievements() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {achievements.map((achievement, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
+            <Card key={index} className="hover:shadow-lg transition-shadow border-2 bg-white dark:bg-[#16213e]" style={{ borderColor: '#D0D7E1' }}>
               <CardContent className="p-6">
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
                     {getIcon(achievement.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-gray-900 dark:text-white mb-1">
+                    <h3 className="mb-1 font-semibold text-[#072D44] dark:text-white">
                       {achievement.title}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-sm mb-2 text-[#5790AB] dark:text-[#9CCDDB]">
                       {achievement.description}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                    <p className="text-xs text-[#9CCDDB] dark:text-[#5790AB]">
                       Mở khóa: {new Date(achievement.unlockedAt).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
@@ -96,41 +96,41 @@ export default function Achievements() {
       )}
 
       {/* Locked Achievements */}
-      <Card>
+      <Card className="border-2 bg-white dark:bg-[#16213e]" style={{ borderColor: '#D0D7E1' }}>
         <CardHeader>
-          <CardTitle>Thành tựu có thể mở khóa</CardTitle>
+          <CardTitle className="text-[#072D44] dark:text-white">Thành tựu có thể mở khóa</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {!achievements.some(a => a.type === 'first_win') && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg opacity-60">
+              <div className="p-4 rounded-lg opacity-60 bg-[#F8F9FA] dark:bg-[#0f3460]">
                 <div className="flex items-center space-x-3">
-                  <Trophy className="w-6 h-6 text-gray-400" />
+                  <Trophy className="w-6 h-6" style={{ color: '#9CCDDB' }} />
                   <div>
-                    <p className="text-sm text-gray-900 dark:text-white">Chiến thắng đầu tiên</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Thắng trận đầu tiên</p>
+                    <p className="text-sm font-medium text-[#072D44] dark:text-white">Chiến thắng đầu tiên</p>
+                    <p className="text-xs text-[#5790AB] dark:text-[#9CCDDB]">Thắng trận đầu tiên</p>
                   </div>
                 </div>
               </div>
             )}
             {!achievements.some(a => a.type === 'high_score') && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg opacity-60">
+              <div className="p-4 rounded-lg opacity-60 bg-[#F8F9FA] dark:bg-[#0f3460]">
                 <div className="flex items-center space-x-3">
-                  <Star className="w-6 h-6 text-gray-400" />
+                  <Star className="w-6 h-6" style={{ color: '#9CCDDB' }} />
                   <div>
-                    <p className="text-sm text-gray-900 dark:text-white">Chuyên gia</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Đạt hơn 1000 điểm</p>
+                    <p className="text-sm font-medium text-[#072D44] dark:text-white">Chuyên gia</p>
+                    <p className="text-xs text-[#5790AB] dark:text-[#9CCDDB]">Đạt hơn 1000 điểm</p>
                   </div>
                 </div>
               </div>
             )}
             {!achievements.some(a => a.type === 'games_played') && (
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg opacity-60">
+              <div className="p-4 rounded-lg opacity-60 bg-[#F8F9FA] dark:bg-[#0f3460]">
                 <div className="flex items-center space-x-3">
-                  <Medal className="w-6 h-6 text-gray-400" />
+                  <Medal className="w-6 h-6" style={{ color: '#9CCDDB' }} />
                   <div>
-                    <p className="text-sm text-gray-900 dark:text-white">Người chơi tận tụy</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Chơi 10 trận</p>
+                    <p className="text-sm font-medium text-[#072D44] dark:text-white">Người chơi tận tụy</p>
+                    <p className="text-xs text-[#5790AB] dark:text-[#9CCDDB]">Chơi 10 trận</p>
                   </div>
                 </div>
               </div>
