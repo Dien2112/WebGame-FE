@@ -1,7 +1,7 @@
 import React from 'react';
-import { GRID_SIZE, COLORS } from '@/game-logic/constants';
+import { GRID_SIZE, COLORS } from '@/game-logic/utils/constants';
 
-const DotMatrix = ({ matrix }) => {
+const DotMatrix = ({ matrix, onDotClick }) => {
     // Ensure matrix is valid, fallback to empty if not
     const safeMatrix = matrix && matrix.length === GRID_SIZE ? matrix : Array(GRID_SIZE).fill(Array(GRID_SIZE).fill(COLORS.OFF));
 
@@ -17,7 +17,8 @@ const DotMatrix = ({ matrix }) => {
                 row.map((color, cIndex) => (
                     <div
                         key={`${rIndex}-${cIndex}`}
-                        className="rounded-full w-full h-full transition-colors duration-100"
+                        onClick={() => onDotClick && onDotClick(rIndex, cIndex)}
+                        className={`rounded-full w-full h-full transition-colors duration-100 ${onDotClick ? 'cursor-pointer hover:opacity-80' : ''}`}
                         style={{
                             backgroundColor: color,
                             boxShadow: color !== COLORS.OFF ? `0 0 4px ${color}, inset 0 0 2px rgba(255,255,255,0.5)` : 'inset 0 1px 3px rgba(0,0,0,0.5)'
