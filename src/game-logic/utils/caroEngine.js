@@ -1,6 +1,6 @@
 import { GRID_SIZE, COLORS } from './constants';
 
-export const initialCaro5State = {
+export const initialCaroState = (winLength) => ({
     board: Array(GRID_SIZE)
         .fill(null)
         .map(() => Array(GRID_SIZE).fill(null)), // 20x20
@@ -10,8 +10,9 @@ export const initialCaro5State = {
     winner: null,            // 'Red' | 'Blue' | 'DRAW' | null
     winningLine: null,        // [[r,c], ...]
     players: null,      // { Red: 'HUMAN' | 'COMPUTER', Blue: 'HUMAN' | 'COMPUTER' }
-    startingPlayer: null
-};
+    startingPlayer: null,
+    winLength
+});
 
 const DIRECTIONS = [
     [0, 1],   // ngang phải
@@ -36,7 +37,7 @@ export const getRandomMove = (board) => {
 
 const inBounds = (r, c) => r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
 
-export const checkWinner = (board, lastMoveR, lastMoveC) => {
+export const checkWinner = (board, lastMoveR, lastMoveC, winLength) => {
     const player = board[lastMoveR][lastMoveC];
     if (!player) return null;
     for (const [dr, dc] of DIRECTIONS) {
@@ -44,7 +45,7 @@ export const checkWinner = (board, lastMoveR, lastMoveC) => {
         let line = [[lastMoveR, lastMoveC]];
 
         // Kiếm tra hướng dương
-        for (let step = 1; step < 5; step++) {
+        for (let step = 1; step < winLength; step++) {
             const nr = lastMoveR + dr * step;
             const nc = lastMoveC + dc * step;
             if (inBounds(nr, nc) && board[nr][nc] === player) {
@@ -56,7 +57,7 @@ export const checkWinner = (board, lastMoveR, lastMoveC) => {
         }
 
         // Kiếm tra hướng âm
-        for (let step = 1; step < 5; step++) {
+        for (let step = 1; step < winLength; step++) {
             const nr = lastMoveR - dr * step;
             const nc = lastMoveC - dc * step;
             if (inBounds(nr, nc) && board[nr][nc] === player) {
@@ -67,7 +68,7 @@ export const checkWinner = (board, lastMoveR, lastMoveC) => {
             }
         }
 
-        if (count >= 5) {
+        if (count >= winLength) {
             return { winner: player, line };
         }
     }
@@ -85,7 +86,7 @@ export const isBoardFull = (board) => {
     return true;
 }
 
-export const updateCaro5 = (state, action) => {
+export const updateCaro = (state, action) => {
     if (state.winner) {
         if (action === 'ENTER' || action === 'RESET') {
             return { ...initialCaro5State };
@@ -107,7 +108,7 @@ export const updateCaro5 = (state, action) => {
         if (board[cursor.r][cursor.c] === null) {
             const newBoard = board.map(row => row.slice());
             newBoard[cursor.r][cursor.c] = turn;
-            const result = checkWinner(newBoard, cursor.r, cursor.c);
+            const result = checkWinner(newBoard, cursor.r, cursor.c, state.winLength);
             if (result) {
                 return {
                     ...state,
@@ -136,7 +137,7 @@ export const updateCaro5 = (state, action) => {
     };
 }
 
-export const renderCaro5 = (state, tick) => {
+export const renderCaro = (state, tick) => {
     const grid = Array(GRID_SIZE)
         .fill(null)
         .map(() => Array(GRID_SIZE).fill(COLORS.OFF));
