@@ -18,6 +18,7 @@ class Caro5Logic extends GameLogic {
             startingPlayer: youGoFirst ? 'You' : 'Computer'
         };
         this.computerMoved = false;
+        this.computerThinkUntil = null; // Thời gian máy tính suy nghĩ
         this.setStatus(
             youGoFirst ? 'You go first (Red)' : 'Computer goes first (Red)'
         );
@@ -45,20 +46,31 @@ class Caro5Logic extends GameLogic {
 
     onTick(tick) {
         const currentRole = this.state.players[this.state.turn];
+        const now = performance.now(); // thời gian thật (ms)
 
         if (!this.state.winner && currentRole === 'COMPUTER' && !this.computerMoved) {
-            const move = getRandomMove(this.state.board);
-            if (move) {
-                this.state = {
-                    ...this.state,
-                    cursor: move
-                };
-                this.state = updateCaro5(this.state, 'ENTER');
-                this.computerMoved = true;
+            // Lần đầu vào lượt COMPUTER → set thời gian suy nghĩ
+            if (this.computerThinkUntil === null) {
+                const delayMs = 1000 + Math.random() * 2000; // 1–3 giây
+                this.computerThinkUntil = now + delayMs;
+            }
+
+            // Đã đến thời gian đánh
+            if (now >= this.computerThinkUntil && !this.computerMoved) {
+                const move = getRandomMove(this.state.board);
+                if (move) {
+                    this.state = {
+                        ...this.state,
+                        cursor: move
+                    };
+                    this.state = updateCaro5(this.state, 'ENTER');
+                    this.computerMoved = true;
+                }
             }
         }
         if (currentRole === 'HUMAN') {
             this.computerMoved = false;
+            this.computerThinkUntil = null;
         }
         const grid = renderCaro5(this.state, tick);
         this.setMatrix(grid);
