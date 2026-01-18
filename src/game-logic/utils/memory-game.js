@@ -9,9 +9,8 @@ const COLOR_PAIRS = [
     COLORS.YELLOW,
     COLORS.PURPLE,
     '#F97316',      // Orange
-    '#d82ea8ff', // pink
-    //COLORS.BLACK,
-    '#06b6d4',      // Cyan (was COLORS.WHITE)
+    '#d82ea8ff',    // Pink
+    '#06b6d4',      // Cyan
     '#10B981'       // Green
 ];
 
@@ -35,7 +34,7 @@ export const initialMemoryState = {
     cards: generateCards(),
     flipped: [],        // Indices of currently flipped cards
     matched: [],        // Indices of matched cards
-    cursor: null,       // No default cursor for click-only
+    cursor: null,       // Current cursor position (card index)
     score: 0,
     moves: 0,
     gameOver: false,
@@ -108,7 +107,7 @@ export const updateMemory = (state, button) => {
                     secondCard: idx,
                     moves: newMoves,
                     canFlip: false, // Disable flipping during reveal
-                    hideTimer: 8   // Wait 1.5 seconds (15 ticks)
+                    hideTimer: 8   // Wait 0.8 seconds (8 ticks at 100ms)
                 };
             }
         }
@@ -196,7 +195,7 @@ export const renderMemory = (state, tick) => {
         }
         // Priority 2: Flipped (Blinking its color)
         else if (state.flipped.includes(i)) {
-            // Blink between Card Color and Face Down Color (hiding/showing logic)
+            // Blink between Card Color and Face Down Color
             if (Math.floor(tick / 4) % 2 === 0) {
                 cardColor = state.cards[i];
             } else {
