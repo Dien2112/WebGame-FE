@@ -93,29 +93,20 @@ export default function Messages() {
   //HANDLERS
   const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
-
-    // Optimistic Update (Visual Only for now, no API call requested yet)
-    // "3. ... No more (dont imply send and 5s-reset yet)" -> implies just viewing.
-    // But existing UI has send logic. I should probably keep the local state update so it feels responsive?
-    // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now 
-    // OR disable it? "Comment all the mockConversation... set the one with REAL Messages... No more".
-    // I will leave the existing handleSendMessage but it won't persist to DB.
-    const tempMessage = {
-      id: Date.now(), // tạm thời
-      sender: "me",
-      text: messageInput,
-      created_at: new Date().toISOString(),
-    };
-
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === selectedId
           ? {
-            ...conv,
-            messages: [
-              ...conv.messages, tempMessage
-            ],
-          }
+              ...conv,
+              messages: [
+                ...conv.messages,
+                {
+                  id: conv.messages.length + 1,
+                  sender: "me",
+                  text: messageInput,
+                },
+              ],
+            }
           : conv
       )
     );
