@@ -6,9 +6,11 @@ export const initialCaro5State = {
         .map(() => Array(GRID_SIZE).fill(null)), // 20x20
 
     cursor: { r: 10, c: 10 }, // bắt đầu giữa bàn
-    turn: 'X',               // 'X' | 'O'
-    winner: null,            // 'X' | 'O' | 'DRAW' | null
-    winningLine: null        // [[r,c], ...]
+    turn: 'Red',               // 'Red' | 'Blue'
+    winner: null,            // 'Red' | 'Blue' | 'DRAW' | null
+    winningLine: null,        // [[r,c], ...]
+    players: null,      // { Red: 'HUMAN' | 'COMPUTER', Blue: 'HUMAN' | 'COMPUTER' }
+    startingPlayer: null
 };
 
 const DIRECTIONS = [
@@ -17,6 +19,20 @@ const DIRECTIONS = [
     [1, 1],   // chéo phải xuống
     [1, -1]   // chéo trái xuống
 ];
+
+export const getRandomMove = (board) => {
+    const emptyCells = [];
+    for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+            if (board[r][c] === null) {
+                emptyCells.push({ r, c });
+            }
+        }
+    }
+    if (emptyCells.length === 0) return null;
+    return emptyCells[Math.floor(Math.random() * emptyCells.length)];
+};
+
 
 const inBounds = (r, c) => r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
 
@@ -109,7 +125,7 @@ export const updateCaro5 = (state, action) => {
                 return {
                     ...state,
                     board: newBoard,
-                    turn: turn === 'X' ? 'O' : 'X'
+                    turn: turn === 'Red' ? 'Blue' : 'Red'
                 };
             }
         }
@@ -127,9 +143,9 @@ export const renderCaro5 = (state, tick) => {
 
     for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
-            if (state.board[r][c] === 'X') {
+            if (state.board[r][c] === 'Red') {
                 grid[r][c] = COLORS.RED;
-            } else if (state.board[r][c] === 'O') {
+            } else if (state.board[r][c] === 'Blue') {
                 grid[r][c] = COLORS.BLUE;
             }
         }

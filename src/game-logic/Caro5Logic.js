@@ -2,21 +2,35 @@ import GameLogic from './model/GameLogic';
 import { createEmptyGrid, COLORS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
-import { initialCaro5State, updateCaro5, renderCaro5 } from './utils/caro5';
+import { initialCaro5State, updateCaro5, renderCaro5, getRandomMove } from './utils/caro5';
 
 class Caro5Logic extends GameLogic {
     constructor(setMatrix, setScore, setStatus, onExit) {
         super(setMatrix, setScore, setStatus, onExit);
-        this.setStatus('CARO5');
         this.name = 'CARO5';
-        this.state = initialCaro5State;
-    }
+        const youGoFirst = Math.random() < 0.5;
+        this.state = {
+            ...initialCaro5State,
+            players: {
+                Red: youGoFirst ? 'HUMAN' : 'COMPUTER',
+                Blue: youGoFirst ? 'COMPUTER' : 'HUMAN'
+            },
+            startingPlayer: youGoFirst ? 'You' : 'Computer'
+        };
+        this.computerMoved = false;
+        this.setStatus(
+            youGoFirst ? 'You go first (Red)' : 'Computer goes first (Red)'
+        );
+    };
+        
 
     onConsolePress(action, tick) {
         if (action === 'BACK') {
             this.onExit();
             return;
         }
+        const currentRole = this.state.players[this.state.turn];
+        if (currentRole === 'COMPUTER') return;
         this.state = updateCaro5(this.state, action);
         this.updateStatus();
     }
@@ -30,11 +44,22 @@ class Caro5Logic extends GameLogic {
     }
 
     onTick(tick) {
-        // const grid = createEmptyGrid();
-        // if (Math.floor(tick / 10) % 2 === 0) {
-        //     drawSprite(grid, getCharGrid('5'), 8, 8, COLORS.RED);
-        // }
-        // this.setMatrix(grid);
+        const currentRole = this.state.players[this.state.turn];
+
+        if (!this.state.winner && currentRole === 'COMPUTER' && !this.computerMoved) {
+            const move = getRandomMove(this.state.board);
+            if (move) {
+                this.state = {
+                    ...this.state,
+                    cursor: move
+                };
+                this.state = updateCaro5(this.state, 'ENTER');
+                this.computerMoved = true;
+            }
+        }
+        if (currentRole === 'HUMAN') {
+            this.computerMoved = false;
+        }
         const grid = renderCaro5(this.state, tick);
         this.setMatrix(grid);
         this.updateStatus();
@@ -45,10 +70,20 @@ class Caro5Logic extends GameLogic {
             if (this.state.winner === 'DRAW') {
                 this.setStatus('End game: Draw!');
             } else {
-                this.setStatus(`End game: ${this.state.winner} Wins!`);
+                const role = this.state.players[this.state.winner];
+                this.setStatus(
+                    role === 'HUMAN'
+                        ? 'You Win!'
+                        : 'Computer Wins!'
+                );
             }
         } else {
-            this.setStatus(`Turn: ${this.state.turn}`);
+            const role = this.state.players[this.state.turn];
+            this.setStatus(
+                role === 'HUMAN'
+                    ? 'Your Turn'
+                    : 'Computer Thinking...'
+            );
         }
     }
 
