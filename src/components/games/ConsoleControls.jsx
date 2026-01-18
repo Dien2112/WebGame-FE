@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, CornerDownLeft, Undo2, HelpCircle } from 'lucide-react';
-import { BUTTONS } from '@/game-logic/constants';
+import { BUTTONS } from '@/game-logic/utils/constants';
 
 const ConsoleControls = ({ onButtonPress, showVertical = false }) => {
     return (
