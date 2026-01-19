@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DotMatrix from './DotMatrix';
 import ConsoleControls from './ConsoleControls';
+import ColorPicker from './ColorPicker';
 import MenuLogic from '@/game-logic/MenuLogic';
 import ScenarioSelectLogic, { createGameLogic } from '@/game-logic/ScenarioSelectLogic';
 import { createEmptyGrid, COLORS } from '@/game-logic/utils/constants';
@@ -28,6 +29,7 @@ const RetroConsole = ({ onGameSelect }) => {
     const [matrix, setMatrix] = useState(createEmptyGrid());
     const [message, setMessage] = useState('Booting System...');
     const [tick, setTick] = useState(0);
+    const [selectedColorIndex, setSelectedColorIndex] = useState(4); // For Paint game
     // Stats State - Managed by Logic via callbacks, but maintained here for display if component needs it
     // Actually, matrix and message are the main display outputs. 
     // RetroConsole displays message at bottom.
@@ -219,6 +221,32 @@ const RetroConsole = ({ onGameSelect }) => {
         }
     };
 
+    const handleColorSelect = (colorIndex, customColor) => {
+        setSelectedColorIndex(colorIndex);
+        if (gameLogicRef.current && gameLogicRef.current.setSelectedColor) {
+            gameLogicRef.current.setSelectedColor(colorIndex, customColor);
+        }
+    };
+
+    const handleClearAll = () => {
+        if (gameLogicRef.current && gameLogicRef.current.clearCanvas) {
+            gameLogicRef.current.clearCanvas();
+        }
+    };
+
+    // Sync selected color from game logic (for keyboard navigation)
+    useEffect(() => {
+        if (gameLogicRef.current && gameLogicRef.current.getSelectedColorIndex) {
+            const interval = setInterval(() => {
+                const currentIndex = gameLogicRef.current.getSelectedColorIndex();
+                if (currentIndex !== selectedColorIndex) {
+                    setSelectedColorIndex(currentIndex);
+                }
+            }, 100);
+            return () => clearInterval(interval);
+        }
+    }, [activeApp, selectedColorIndex]);
+
     // Render Logic
     useEffect(() => {
         if (activeApp === 'LOADING') {
@@ -238,8 +266,18 @@ const RetroConsole = ({ onGameSelect }) => {
 
     }, [activeApp, tick]);
 
+    // Check if current game is Paint
+    const isPaintGame = activeApp === 'PLAYING' && gameLogicRef.current?.name === 'PAINT';
+
     return (
         <div className="flex flex-col items-center justify-center p-4 w-full">
+            {isPaintGame && (
+                <ColorPicker
+                    selectedColorIndex={selectedColorIndex}
+                    onColorSelect={handleColorSelect}
+                    onClearAll={handleClearAll}
+                />
+            )}
             <DotMatrix matrix={matrix} onDotClick={handleDotClick} />
             <ConsoleControls
                 onButtonPress={handleInput}
