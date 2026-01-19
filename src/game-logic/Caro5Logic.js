@@ -1,8 +1,8 @@
 import BaseCaroLogic from './BaseCaroLogic';
 
 class Caro5Logic extends BaseCaroLogic {
-    constructor(setMatrix, setScore, setStatus, onExit) {
-        super(5, '5', 'CARO5', setMatrix, setScore, setStatus, onExit);
+    constructor(setMatrix, setScore, setStatus, onExit, difficulty = 'EASY') {
+        super(5, '5', 'CARO5', setMatrix, setScore, setStatus, onExit, difficulty);
     }
 }
 

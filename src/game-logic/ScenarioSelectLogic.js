@@ -6,6 +6,7 @@ import SnakeLogic from './SnakeLogic';
 import LineLogic from './LineLogic';
 import MemLogic from './MemLogic';
 import PaintLogic from './PaintLogic';
+import DifficultySelectLogic from './DifficultySelectLogic';
 import { createEmptyGrid, COLORS, BUTTONS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
@@ -142,16 +143,16 @@ class ScenarioSelectLogic extends ConsoleLogic {
 }
 
 // Export the Factory for external use (RetroConsole)
-export const createGameLogic = (id, ...args) => {
+export const createGameLogic = (id, setMatrix, setScore, setStatus, onExit, savedState = null, difficulty = 'EASY') => {
     switch (id) {
-        case 'TICTACTOE': return new TicTacToeLogic(...args);
-        case 'CARO_5': return new Caro5Logic(...args);
-        case 'CARO_4': return new Caro4Logic(...args);
-        case 'SNAKE': return new SnakeLogic(...args);
-        case 'LINE': return new LineLogic(...args);
-        case 'MEM': return new MemLogic(...args);
-        case 'PAINT': return new PaintLogic(...args);
-        default: return new TicTacToeLogic(...args);
+        case 'TICTACTOE': return new TicTacToeLogic(setMatrix, setScore, setStatus, onExit);
+        case 'CARO_5': return new Caro5Logic(setMatrix, setScore, setStatus, onExit, difficulty);
+        case 'CARO_4': return new Caro4Logic(setMatrix, setScore, setStatus, onExit, difficulty);
+        case 'SNAKE': return new SnakeLogic(setMatrix, setScore, setStatus, onExit);
+        case 'LINE': return new LineLogic(setMatrix, setScore, setStatus, onExit);
+        case 'MEM': return new MemLogic(setMatrix, setScore, setStatus, onExit);
+        case 'PAINT': return new PaintLogic(setMatrix, setScore, setStatus, onExit);
+        default: return new TicTacToeLogic(setMatrix, setScore, setStatus, onExit);
     }
 };
 
