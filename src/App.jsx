@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { GameConfigProvider } from "./context/GameConfigContext";
 import AuthLayout from "./layouts/AuthLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -41,51 +42,52 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+      <GameConfigProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
-          <Route element={
-            <PublicRoute>
-              <AuthLayout />
-            </PublicRoute>
-          }>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Route>
+            <Route element={
+              <PublicRoute>
+                <AuthLayout />
+              </PublicRoute>
+            }>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
 
-          {/* User Dashboard Routes */}
-          <Route element={
-            <ProtectedRoute allowedRoles={['user']}>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="/dashboard" element={<UserDashboard />} />
-            <Route path="/dashboard/games" element={<Games />} />
-            <Route path="/dashboard/friends" element={<Friends />} />
-            <Route path="/dashboard/messages" element={<Messages />} />
-            <Route path="/dashboard/ranking" element={<Ranking />} />
-            <Route path="/dashboard/profile" element={<Profile />} />
-            <Route path="/dashboard/achievements" element={<Achievements />} />
-            {/* Fallback for unknown dashboard routes */}
-            <Route path="/dashboard/*" element={<div>Page under construction</div>} />
-          </Route>
+            {/* User Dashboard Routes */}
+            <Route element={
+              <ProtectedRoute allowedRoles={['user']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/dashboard" element={<UserDashboard />} />
+              <Route path="/dashboard/games" element={<Games />} />
+              <Route path="/dashboard/friends" element={<Friends />} />
+              <Route path="/dashboard/messages" element={<Messages />} />
+              <Route path="/dashboard/ranking" element={<Ranking />} />
+              <Route path="/dashboard/profile" element={<Profile />} />
+              <Route path="/dashboard/achievements" element={<Achievements />} />
+              {/* Fallback for unknown dashboard routes */}
+              <Route path="/dashboard/*" element={<div>Page under construction</div>} />
+            </Route>
 
-          {/* Admin Routes */}
-          <Route element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route path="/admin" element={<Navigate to="/admin/stats" replace />} />
-            <Route path="/admin/stats" element={<AdminStats />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/games" element={<AdminGames />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="/admin" element={<Navigate to="/admin/stats" replace />} />
+              <Route path="/admin/stats" element={<AdminStats />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/games" element={<AdminGames />} />
+            </Route>
 
-        </Routes>
-      </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </GameConfigProvider>
     </AuthProvider>
   );
 }
-// edited
