@@ -1,6 +1,21 @@
 import { COLORS, BUTTONS, createEmptyGrid } from './constants';
 
-// Game ghép thẻ: Lưới 4x4 với 8 cặp màu
+// ===== CẤU HÌNH GAME (Chỉ cần sửa ở đây để thay đổi kích thước) =====
+export const GAME_CONFIG = {
+    rows: 4,           // Số hàng
+    cols: 4,           // Số cột
+    cardSize: 4,       // Kích thước mỗi thẻ (pixels)
+    gap: 1,            // Khoảng cách giữa các thẻ
+    offsetY: 1,        // Khoảng cách từ trên
+    offsetX: 1,        // Khoảng cách từ trái
+    timeLimit: 120     // Thời gian giới hạn (giây)
+};
+
+// Tính toán tự động
+const TOTAL_CARDS = GAME_CONFIG.rows * GAME_CONFIG.cols;
+const PAIRS_NEEDED = TOTAL_CARDS / 2;
+
+// Game ghép thẻ: Lưới động với nhiều cặp màu
 // Người chơi lật 2 thẻ mỗi lượt để tìm cặp giống nhau
 
 const COLOR_PAIRS = [
@@ -11,7 +26,17 @@ const COLOR_PAIRS = [
     '#F97316',      // Cam
     '#d82ea8ff',    // Hồng
     '#06b6d4',      // Xanh lơ
-    '#10B981'       // Xanh lá
+    '#10B981',      // Xanh lá
+    '#8B5CF6',      // Tím đậm
+    '#EC4899',      // Hồng đậm
+    '#F59E0B',      // Vàng cam
+    '#14B8A6',      // Xanh ngọc
+    '#6366F1',      // Indigo
+    '#A855F7',      // Tím hồng
+    '#EF4444',      // Đỏ tươi
+    '#22D3EE',      // Cyan sáng
+    '#84CC16',      // Lime
+    '#F97316'       // Cam đậm
 ];
 
 // Hàm xáo trộn mảng
@@ -24,9 +49,16 @@ const shuffleArray = (array) => {
     return arr;
 };
 
-// Tạo 16 thẻ ngẫu nhiên (8 cặp)
+// Tạo thẻ ngẫu nhiên dựa trên config
 const generateCards = () => {
-    const pairs = [...COLOR_PAIRS, ...COLOR_PAIRS]; // Nhân đôi để tạo cặp
+    // Kiểm tra có đủ màu không
+    if (PAIRS_NEEDED > COLOR_PAIRS.length) {
+        console.warn(`Cần ${PAIRS_NEEDED} màu nhưng chỉ có ${COLOR_PAIRS.length} màu!`);
+    }
+
+    // Lấy số màu cần thiết
+    const selectedColors = COLOR_PAIRS.slice(0, PAIRS_NEEDED);
+    const pairs = [...selectedColors, ...selectedColors]; // Nhân đôi để tạo cặp
     return shuffleArray(pairs);
 };
 
@@ -42,7 +74,7 @@ export const initialMemoryState = {
     firstCard: null,    // Thẻ đầu tiên
     secondCard: null,   // Thẻ thứ hai
     hideTimer: 0,       // Bộ đếm tự động úp thẻ
-    timeLeft: 120,      // Thời gian còn lại (giây) - 2 phút
+    timeLeft: GAME_CONFIG.timeLimit,  // Thời gian từ config
     isTimedOut: false   // Đã hết giờ chưa
 };
 
@@ -89,7 +121,7 @@ export const updateMemory = (state, button) => {
                 // Khớp!
                 const newMatched = [...state.matched, state.firstCard, idx];
                 const newScore = state.score + 10;
-                const gameOver = newMatched.length === 16; // Đã ghép hết
+                const gameOver = newMatched.length === TOTAL_CARDS; // Đã ghép hết
 
                 return {
                     ...state,
@@ -168,16 +200,8 @@ export const updateTimer = (state) => {
     };
 };
 
-// Thông số bố trí game
-export const MEMORY_LAYOUT = {
-    offsetY: 1,     // Khoảng cách từ trên
-    offsetX: 1,     // Khoảng cách từ trái
-    cardSize: 4,    // Kích thước thẻ (4x4)
-    gap: 1          // Khoảng cách giữa thẻ
-};
-
 export const getCardIndexFromGrid = (row, col) => {
-    const { offsetY, offsetX, cardSize, gap } = MEMORY_LAYOUT;
+    const { offsetY, offsetX, cardSize, gap, rows, cols } = GAME_CONFIG;
 
     // Chuẩn hóa tọa độ về gốc (0,0)
     const r = row - offsetY;
@@ -186,11 +210,12 @@ export const getCardIndexFromGrid = (row, col) => {
     if (r < 0 || c < 0) return -1;
 
     const cellSize = cardSize + gap;
-    const totalSize = 4 * cellSize - gap; // 19
+    const totalSizeY = rows * cellSize - gap;
+    const totalSizeX = cols * cellSize - gap;
 
-    if (r >= totalSize || c >= totalSize) return -1;
+    if (r >= totalSizeY || c >= totalSizeX) return -1;
 
-    // Tìm thẻ ở hàng/cột nào trong lưới 4x4
+    // Tìm thẻ ở hàng/cột nào trong lưới
     const gridRow = Math.floor(r / cellSize);
     const gridCol = Math.floor(c / cellSize);
 
@@ -198,8 +223,8 @@ export const getCardIndexFromGrid = (row, col) => {
     const inCardY = r % cellSize < cardSize;
     const inCardX = c % cellSize < cardSize;
 
-    if (inCardY && inCardX && gridRow >= 0 && gridRow < 4 && gridCol >= 0 && gridCol < 4) {
-        return gridRow * 4 + gridCol;
+    if (inCardY && inCardX && gridRow >= 0 && gridRow < rows && gridCol >= 0 && gridCol < cols) {
+        return gridRow * cols + gridCol;
     }
 
     return -1;
@@ -207,11 +232,11 @@ export const getCardIndexFromGrid = (row, col) => {
 
 export const renderMemory = (state, tick) => {
     const grid = createEmptyGrid();
-    const { offsetY, offsetX, cardSize, gap } = MEMORY_LAYOUT;
+    const { offsetY, offsetX, cardSize, gap, cols } = GAME_CONFIG;
 
-    for (let i = 0; i < 16; i++) {
-        const row = Math.floor(i / 4);
-        const col = i % 4;
+    for (let i = 0; i < TOTAL_CARDS; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
 
         const startY = offsetY + row * (cardSize + gap);
         const startX = offsetX + col * (cardSize + gap);
@@ -233,7 +258,7 @@ export const renderMemory = (state, tick) => {
             }
         }
 
-        // Vẽ thẻ (khối 4x4)
+        // Vẽ thẻ (khối cardSize x cardSize)
         for (let dy = 0; dy < cardSize; dy++) {
             for (let dx = 0; dx < cardSize; dx++) {
                 const y = startY + dy;

@@ -1,8 +1,10 @@
 import GameLogic from './model/GameLogic';
-import { initialMemoryState, updateMemory, renderMemory, autoHideCards, getCardIndexFromGrid, updateTimer } from './utils/memory-game';
+import { initialMemoryState, updateMemory, renderMemory, autoHideCards, getCardIndexFromGrid, updateTimer, GAME_CONFIG } from './utils/memory-game';
 import { createEmptyGrid, COLORS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
+
+const TOTAL_CARDS = GAME_CONFIG.rows * GAME_CONFIG.cols;
 
 class MemLogic extends GameLogic {
     constructor(setMatrix, setScore, setStatus, onExit, savedState) {
@@ -74,7 +76,7 @@ class MemLogic extends GameLogic {
         // Chuyển tọa độ pixel thành index thẻ
         const cardIndex = getCardIndexFromGrid(r, c);
 
-        if (cardIndex >= 0 && cardIndex < 16) {
+        if (cardIndex >= 0 && cardIndex < TOTAL_CARDS) {
             console.log(`[MemLogic] Clicked Card: ${cardIndex}`);
 
             if (!this.state.gameOver && this.state.canFlip) {
