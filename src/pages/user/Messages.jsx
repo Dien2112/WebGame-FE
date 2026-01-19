@@ -7,8 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import { set } from "zod";
 import { api } from "@/lib/api";
 import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
+import { api } from "@/lib/api";
+import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
 
 // Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
+// Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
+/*
 // Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
 /*
 const mockConversations = [
@@ -41,13 +45,16 @@ const mockConversations = [
   },
 ];
 */
+*/
 
 export default function Messages() {
   //STATE
   const { token } = useAuth();
+  const { token } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
+  const [lastSyncAt, setLastSyncAt] = useState(null);
 
   //REF
   const messagesEndRef = useRef(null);
@@ -91,7 +98,7 @@ export default function Messages() {
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
   //HANDLERS
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
 
     // Optimistic Update (Visual Only for now, no API call requested yet)
@@ -119,6 +126,16 @@ export default function Messages() {
       )
     );
     setMessageInput("");
+    // Cập nhật lastSyncAt để prevent duplicate khi sync
+    setLastSyncAt(new Date().toISOString());
+    try {
+      await api.post("/api/messages", {
+        userId: selectedId,
+        text: tempMessage.text,
+      });
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
   };
 
   //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
@@ -126,7 +143,10 @@ export default function Messages() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedConversation?.messages]);
+  }, [selectedConversation?.messages.length]);
+  const orderedMessages = selectedConversation
+    ? [...selectedConversation.messages].reverse()
+    : [];
 
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
@@ -160,6 +180,9 @@ export default function Messages() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold text-sm">{c.name}</p>
+                    <span className="text-xs opacity-70">
+                      {/* Time logic if available, else blank */}
+                    </span>
                     <span className="text-xs opacity-70">
                       {/* Time logic if available, else blank */}
                     </span>
@@ -203,7 +226,7 @@ export default function Messages() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {selectedConversation.messages.map((m) => (
+              {orderedMessages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
