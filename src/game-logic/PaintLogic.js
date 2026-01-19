@@ -1,133 +1,119 @@
 import GameLogic from './model/GameLogic';
-import { createEmptyGrid, COLORS, BUTTONS } from './utils/constants';
+import { createEmptyGrid, COLORS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
-
-const PALETTE_COLORS = [
-    COLORS.BLACK, '#555555', '#AAAAAA', COLORS.WHITE, // Grayscale
-    COLORS.RED, '#EF9999', // Reds
-    '#F97316', COLORS.YELLOW, // Orange/Yellow
-    COLORS.GREEN, '#10B981', // Greens
-    '#06B6D4', COLORS.BLUE, // Cyan/Blue
-    '#6366F1', COLORS.PURPLE, // Indigo/Purple
-    '#EC4899', '#DB2777'  // Pinks
-];
 
 class PaintLogic extends GameLogic {
     constructor(setMatrix, setScore, setStatus, onExit, savedState) {
         super(setMatrix, setScore, setStatus, onExit);
-        this.setStatus('PAINT');
-        
+
+        // Available colors for painting (matching ColorPicker component)
+        this.colorPalette = [
+            COLORS.OFF,    // Eraser
+            COLORS.BLACK,  // Black
+            '#6B7280',     // Gray
+            '#991B1B',     // Dark Red
+            COLORS.RED,    // Red
+            '#F97316',     // Orange
+            COLORS.YELLOW, // Yellow
+            '#10B981',     // Green
+            '#06B6D4',     // Cyan
+            COLORS.BLUE,   // Blue
+            COLORS.PURPLE, // Purple
+            '#FFFFFF',     // White
+            '#9CA3AF',     // Light Gray
+            '#92400E',     // Brown
+            '#FCA5A5',     // Pink
+            '#FCD34D',     // Gold
+            '#FEF3C7',     // Cream
+            '#BEF264',     // Lime
+            '#A5F3FC',     // Light Cyan
+            '#93C5FD',     // Light Blue
+            '#DDD6FE',     // Lavender
+        ];
+
+        // Initialize state
         this.state = {
-            canvas: this.initCanvas(savedState?.canvas),
-            cursor: { r: 5, c: 5 }, // Start in canvas
-            brushColor: COLORS.BLACK,
-            ...savedState
+            selectedColorIndex: savedState?.selectedColorIndex || 4, // Start with RED
+            canvas: savedState?.canvas || this.createEmptyCanvas(),
+            customColor: savedState?.customColor || '#FF00FF', // Store custom color
         };
+
+        this.setStatus('PAINT - CLICK TO DRAW');
+        this.name = 'PAINT';
     }
 
-    initCanvas(savedCanvas) {
-        if (savedCanvas) return savedCanvas;
-        // 20x20 transparent/off
-        return createEmptyGrid(); 
+    createEmptyCanvas() {
+        // Create 20x20 canvas (full grid)
+        const canvas = [];
+        for (let i = 0; i < 20; i++) {
+            canvas.push(new Array(20).fill(COLORS.OFF));
+        }
+        return canvas;
+    }
+
+    // Method to be called from external ColorPicker
+    setSelectedColor(colorIndex, customColor) {
+        this.state.selectedColorIndex = colorIndex;
+        if (customColor) {
+            this.state.customColor = customColor;
+        }
+    }
+
+    getSelectedColorIndex() {
+        return this.state.selectedColorIndex;
+    }
+
+    clearCanvas() {
+        this.state.canvas = this.createEmptyCanvas();
+        this.setStatus('CANVAS CLEARED!');
+        setTimeout(() => this.setStatus('PAINT - CLICK TO DRAW'), 500);
     }
 
     onConsolePress(action, tick) {
-        if (action === BUTTONS.BACK) {
+        if (action === 'BACK') {
             this.onExit();
             return;
         }
 
-        const { cursor } = this.state;
-        let nextCursor = { ...cursor };
-
-        if (action === BUTTONS.UP) nextCursor.r = Math.max(0, cursor.r - 1);
-        if (action === BUTTONS.DOWN) nextCursor.r = Math.min(19, cursor.r + 1);
-        if (action === BUTTONS.LEFT) nextCursor.c = Math.max(0, cursor.c - 1);
-        if (action === BUTTONS.RIGHT) nextCursor.c = Math.min(19, cursor.c + 1);
-
-        // Divider Skip Logic (Row 1 is divider)
-        // If moving DOWN from 0, jump to 2.
-        if (cursor.r === 0 && nextCursor.r === 1) nextCursor.r = 2;
-        // If moving UP from 2, jump to 0.
-        if (cursor.r === 2 && nextCursor.r === 1) nextCursor.r = 0;
-
-        if (action === BUTTONS.ENTER) {
-            this.handleAction(cursor.r, cursor.c);
-            return;
+        // Navigate through color palette with keyboard
+        if (action === 'LEFT') {
+            this.state.selectedColorIndex =
+                (this.state.selectedColorIndex - 1 + this.colorPalette.length) % this.colorPalette.length;
+        } else if (action === 'RIGHT') {
+            this.state.selectedColorIndex =
+                (this.state.selectedColorIndex + 1) % this.colorPalette.length;
+        } else if (action === 'ENTER') {
+            // Clear canvas
+            this.state.canvas = this.createEmptyCanvas();
+            this.setStatus('CANVAS CLEARED!');
+            setTimeout(() => this.setStatus('PAINT - CLICK TO DRAW'), 500);
         }
-
-        this.updateState({ cursor: nextCursor });
     }
 
     onDotClick(r, c) {
-        if (r < 0 || r >= 20 || c < 0 || c >= 20) return;
-        
-        // Skip Divider click (Row 1)
-        if (r === 1) return;
-
-        this.updateState({ cursor: { r, c } });
-        this.handleAction(r, c);
-    }
-
-    handleAction(r, c) {
-        if (r === 0) {
-            // Palette Area (1x1 dots, contiguous)
-            // c is directly the index
-            const colorIndex = c;
-            if (colorIndex < PALETTE_COLORS.length) {
-                this.updateState({ brushColor: PALETTE_COLORS[colorIndex] });
+        // Paint on canvas (full 20x20 grid)
+        if (r >= 0 && r < 20 && c >= 0 && c < 20) {
+            let selectedColor;
+            if (this.state.selectedColorIndex === 21) {
+                // Use custom color from color wheel
+                selectedColor = this.state.customColor;
+            } else {
+                // Use preset color from palette
+                selectedColor = this.colorPalette[this.state.selectedColorIndex];
             }
-        } else if (r >= 2) {
-            // Canvas Area
-            const newCanvas = this.state.canvas.map(row => [...row]);
-            newCanvas[r][c] = this.state.brushColor;
-            this.updateState({ canvas: newCanvas });
+            this.state.canvas[r][c] = selectedColor;
         }
-    }
-
-    updateState(updates) {
-        this.state = { ...this.state, ...updates };
-        this.status = this.state;
     }
 
     onTick(tick) {
         const grid = createEmptyGrid();
-        const { canvas, cursor, brushColor } = this.state;
 
-        // 1. Draw Canvas (Rows 2+)
+        // Draw canvas (full 20x20 grid)
         for (let r = 0; r < 20; r++) {
             for (let c = 0; c < 20; c++) {
-                 if (r >= 2) {
-                     grid[r][c] = canvas[r][c];
-                 }
+                grid[r][c] = this.state.canvas[r][c];
             }
-        }
-
-        // 2. Draw Divider (Row 1 - Solid)
-        for (let c = 0; c < 20; c++) {
-            grid[1][c] = '#555'; // Solid Line
-        }
-
-        // 3. Draw Palette (Row 0)
-        // Contiguous
-        PALETTE_COLORS.forEach((color, idx) => {
-            if (idx >= 20) return;
-            
-            grid[0][idx] = color;
-            
-            // Selected Indicator
-            if (color === brushColor) {
-                 if (Math.floor(tick / 10) % 2 === 0) {
-                     // Flicker to OFF (Blink) to avoid confusion with White/Greys
-                     grid[0][idx] = COLORS.OFF; 
-                 }
-            }
-        });
-
-        // 4. Draw Cursor
-        if (Math.floor(tick / 3) % 2 === 0) {
-            grid[cursor.r][cursor.c] = COLORS.WHITE; 
         }
 
         this.setMatrix(grid);
@@ -135,8 +121,39 @@ class PaintLogic extends GameLogic {
 
     preview(saveData, tick) {
         const grid = createEmptyGrid();
-        drawSprite(grid, getCharGrid('P'), 8, 8, COLORS.RED);
+
+        if (!saveData) {
+            // New game preview - show "PAINT" text
+            drawSprite(grid, getCharGrid('P'), 8, 4, COLORS.RED);
+            drawSprite(grid, getCharGrid('A'), 8, 8, COLORS.YELLOW);
+            drawSprite(grid, getCharGrid('I'), 8, 12, COLORS.BLUE);
+            drawSprite(grid, getCharGrid('N'), 13, 4, COLORS.PURPLE);
+            drawSprite(grid, getCharGrid('T'), 13, 8, COLORS.ON);
+            return grid;
+        }
+
+        // Show saved canvas preview
+        if (saveData.canvas) {
+            // Draw the saved canvas
+            for (let r = 0; r < 20; r++) {
+                for (let c = 0; c < 20; c++) {
+                    if (saveData.canvas[r] && saveData.canvas[r][c]) {
+                        grid[r][c] = saveData.canvas[r][c];
+                    }
+                }
+            }
+        }
+
         return grid;
+    }
+
+    // Save state for persistence
+    getSaveData() {
+        return {
+            canvas: this.state.canvas,
+            selectedColorIndex: this.state.selectedColorIndex,
+            customColor: this.state.customColor
+        };
     }
 }
 
