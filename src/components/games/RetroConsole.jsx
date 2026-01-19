@@ -75,7 +75,7 @@ const RetroConsole = ({ onGameSelect }) => {
             if (isTransitioning) {
                 setTransitionTick(t => t + 1);
             }
-        }, 100);
+        }, 50);
         return () => clearInterval(timer);
     }, [isTransitioning, tick]); // Added tick to dependancy if needed, usually cleaner to use functional update or ref for tick
 
