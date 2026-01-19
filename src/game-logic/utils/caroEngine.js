@@ -1,16 +1,17 @@
 import { GRID_SIZE, COLORS } from './constants';
 
-export const initialCaroState = (winLength) => ({
-    board: Array(GRID_SIZE)
+export const initialCaroState = (boardSize, winLength) => ({
+    board: Array(boardSize)
         .fill(null)
-        .map(() => Array(GRID_SIZE).fill(null)), // 20x20
+        .map(() => Array(boardSize).fill(null)), // 20x20
 
-    cursor: { r: 10, c: 10 }, // bắt đầu giữa bàn
+    cursor: { r: Math.floor(boardSize / 2), c: Math.floor(boardSize / 2) }, // bắt đầu giữa bàn
     turn: 'Red',               // 'Red' | 'Blue'
     winner: null,            // 'Red' | 'Blue' | 'DRAW' | null
     winningLine: null,        // [[r,c], ...]
     players: null,      // { Red: 'HUMAN' | 'COMPUTER', Blue: 'HUMAN' | 'COMPUTER' }
     startingPlayer: null,
+    boardSize,
     winLength
 });
 
@@ -21,10 +22,10 @@ const DIRECTIONS = [
     [1, -1]   // chéo trái xuống
 ];
 
-export const getRandomMove = (board) => {
+export const getRandomMove = (board, boardSize) => {
     const emptyCells = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
             if (board[r][c] === null) {
                 emptyCells.push({ r, c });
             }
@@ -35,7 +36,7 @@ export const getRandomMove = (board) => {
 };
 
 
-const inBounds = (r, c) => r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
+const inBounds = (r, c, boardSize) => r >= 0 && r < boardSize && c >= 0 && c < boardSize;
 
 export const checkWinner = (board, lastMoveR, lastMoveC, winLength) => {
     const player = board[lastMoveR][lastMoveC];
@@ -48,7 +49,7 @@ export const checkWinner = (board, lastMoveR, lastMoveC, winLength) => {
         for (let step = 1; step < winLength; step++) {
             const nr = lastMoveR + dr * step;
             const nc = lastMoveC + dc * step;
-            if (inBounds(nr, nc) && board[nr][nc] === player) {
+            if (inBounds(nr, nc, board.length) && board[nr][nc] === player) {
                 count++;
                 line.push([nr, nc]);
             } else {
@@ -60,7 +61,7 @@ export const checkWinner = (board, lastMoveR, lastMoveC, winLength) => {
         for (let step = 1; step < winLength; step++) {
             const nr = lastMoveR - dr * step;
             const nc = lastMoveC - dc * step;
-            if (inBounds(nr, nc) && board[nr][nc] === player) {
+            if (inBounds(nr, nc, board.length) && board[nr][nc] === player) {
                 count++;
                 line.push([nr, nc]);
             } else {
@@ -76,8 +77,9 @@ export const checkWinner = (board, lastMoveR, lastMoveC, winLength) => {
 }
 
 export const isBoardFull = (board) => {
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    const size = board.length;
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
             if (board[r][c] === null) {
                 return false;
             }
@@ -89,7 +91,7 @@ export const isBoardFull = (board) => {
 export const updateCaro = (state, action) => {
     if (state.winner) {
         if (action === 'ENTER' || action === 'RESET') {
-            return { ...initialCaro5State };
+            return { ...initialCaroState(state.boardSize, state.winLength) };
         }
         return state;
     }
@@ -99,11 +101,11 @@ export const updateCaro = (state, action) => {
     if (action === 'LEFT') {
         cursor = { r: cursor.r, c: Math.max(0, cursor.c - 1) };
     } else if (action === 'RIGHT') {
-        cursor = { r: cursor.r, c: Math.min(GRID_SIZE - 1, cursor.c + 1) };
+        cursor = { r: cursor.r, c: Math.min(state.boardSize - 1, cursor.c + 1) };
     } else if (action === 'UP') {
         cursor = { r: Math.max(0, cursor.r - 1), c: cursor.c };
     } else if (action === 'DOWN') {
-        cursor = { r: Math.min(GRID_SIZE - 1, cursor.r + 1), c: cursor.c };
+        cursor = { r: Math.min(state.boardSize - 1, cursor.r + 1), c: cursor.c };
     } else if (action === 'ENTER') {
         if (board[cursor.r][cursor.c] === null) {
             const newBoard = board.map(row => row.slice());
@@ -140,14 +142,24 @@ export const updateCaro = (state, action) => {
 export const renderCaro = (state, tick) => {
     const grid = Array(GRID_SIZE)
         .fill(null)
-        .map(() => Array(GRID_SIZE).fill(COLORS.OFF));
+        .map(() => Array(GRID_SIZE).fill(COLORS.BLACK));
 
-    for (let r = 0; r < GRID_SIZE; r++) {
-        for (let c = 0; c < GRID_SIZE; c++) {
+    const offset = Math.floor((GRID_SIZE - state.boardSize) / 2);
+
+    for (let r = 0; r < state.boardSize; r++) {
+        for (let c = 0; c < state.boardSize; c++) {
+            grid[r + offset][c + offset] = COLORS.OFF;
+        }
+    }
+
+    for (let r = 0; r < state.boardSize; r++) {
+        for (let c = 0; c < state.boardSize; c++) {
+            const gr = r + offset;
+            const gc = c + offset;
             if (state.board[r][c] === 'Red') {
-                grid[r][c] = COLORS.RED;
+                grid[gr][gc] = COLORS.RED;
             } else if (state.board[r][c] === 'Blue') {
-                grid[r][c] = COLORS.BLUE;
+                grid[gr][gc] = COLORS.BLUE;
             }
         }
     }
@@ -155,14 +167,14 @@ export const renderCaro = (state, tick) => {
     // Highlight winning line
     if (state.winningLine) {
         for (const [r, c] of state.winningLine) {
-            grid[r][c] = COLORS.YELLOW;
+            grid[r+ offset][c+ offset] = COLORS.YELLOW;
         }
     }
 
     // Cursor blinking
     if (!state.winner && Math.floor(tick / 3) % 2 === 0) {
         const { r, c } = state.cursor;
-        grid[r][c] = COLORS.WHITE;
+        grid[r+ offset][c+ offset] = COLORS.WHITE;
     }
     return grid;
 }

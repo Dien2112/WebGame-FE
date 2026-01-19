@@ -3,14 +3,15 @@ import { createEmptyGrid, COLORS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
 import { initialCaroState, updateCaro, renderCaro, getRandomMove } from './utils/caroEngine';
+import { GRID_SIZE } from './utils/constants';
 
 class BaseCaroLogic extends GameLogic {
-    constructor(winLength, labelChar, gameName, setMatrix, setScore, setStatus, onExit) {
+    constructor(boardSize, winLength, labelChar, gameName, setMatrix, setScore, setStatus, onExit) {
         super(setMatrix, setScore, setStatus, onExit);
         this.name = gameName;
         const youGoFirst = Math.random() < 0.5;
         this.state = {
-            ...initialCaroState(winLength),
+            ...initialCaroState(boardSize, winLength),
             players: {
                 Red: youGoFirst ? 'HUMAN' : 'COMPUTER',
                 Blue: youGoFirst ? 'COMPUTER' : 'HUMAN'
@@ -38,9 +39,18 @@ class BaseCaroLogic extends GameLogic {
     }
 
     onDotClick(r, c) {
+        const { boardSize } = this.state;
+        const offset = Math.floor((GRID_SIZE - boardSize) / 2);
+
+        const br = r - offset;
+        const bc = c - offset;
+
+        if (br < 0 || br >= boardSize || bc < 0 || bc >= boardSize) {
+            return;
+        }
         this.state = {
             ...this.state,
-            cursor: { r, c }
+            cursor: { r: br, c: bc }
         };
         this.onConsolePress('ENTER');
     }
@@ -58,7 +68,7 @@ class BaseCaroLogic extends GameLogic {
 
             // Đã đến thời gian đánh
             if (now >= this.computerThinkUntil && !this.computerMoved) {
-                const move = getRandomMove(this.state.board);
+                const move = getRandomMove(this.state.board, this.state.boardSize);
                 if (move) {
                     this.state = {
                         ...this.state,
