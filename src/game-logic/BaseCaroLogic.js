@@ -2,13 +2,12 @@ import GameLogic from './model/GameLogic';
 import { createEmptyGrid, COLORS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
-import { initialCaroState, updateCaro, renderCaro, getRandomMove, getMediumMove, getHardMove } from './utils/caroEngine';
+import { initialCaroState, updateCaro, renderCaro, getRandomMove } from './utils/caroEngine';
 
 class BaseCaroLogic extends GameLogic {
-    constructor(winLength, labelChar, gameName, setMatrix, setScore, setStatus, onExit, difficulty = 'EASY') {
+    constructor(winLength, labelChar, gameName, setMatrix, setScore, setStatus, onExit) {
         super(setMatrix, setScore, setStatus, onExit);
         this.name = gameName;
-        this.difficulty = difficulty;
         const youGoFirst = Math.random() < 0.5;
         this.state = {
             ...initialCaroState(winLength),
@@ -59,19 +58,7 @@ class BaseCaroLogic extends GameLogic {
 
             // Đã đến thời gian đánh
             if (now >= this.computerThinkUntil && !this.computerMoved) {
-                let move;
-                
-                // Choose move strategy based on difficulty
-                if (this.difficulty === 'EASY') {
-                    move = getRandomMove(this.state.board);
-                } else if (this.difficulty === 'MEDIUM') {
-                    const opponent = this.state.turn === 'Red' ? 'Blue' : 'Red';
-                    move = getMediumMove(this.state.board, this.state.turn, opponent, this.state.winLength);
-                } else if (this.difficulty === 'HARD') {
-                    const opponent = this.state.turn === 'Red' ? 'Blue' : 'Red';
-                    move = getHardMove(this.state.board, this.state.turn, opponent, this.state.winLength);
-                }
-                
+                const move = getRandomMove(this.state.board);
                 if (move) {
                     this.state = {
                         ...this.state,

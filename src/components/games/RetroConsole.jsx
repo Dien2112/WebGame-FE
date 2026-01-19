@@ -3,14 +3,13 @@ import DotMatrix from './DotMatrix';
 import ConsoleControls from './ConsoleControls';
 import MenuLogic from '@/game-logic/MenuLogic';
 import ScenarioSelectLogic, { createGameLogic } from '@/game-logic/ScenarioSelectLogic';
-import DifficultySelectLogic from '@/game-logic/DifficultySelectLogic';
 import { createEmptyGrid, COLORS } from '@/game-logic/utils/constants';
 import { fetchGames } from '@/game-logic/utils/game-service';
 
 // ... (existing imports)
 
 const RetroConsole = ({ onGameSelect }) => {
-    // App States: LOADING -> MENU -> SCENARIO_SELECT -> DIFFICULTY_SELECT -> PLAYING
+    // App States: LOADING -> MENU -> SCENARIO_SELECT -> PLAYING
     const [activeApp, setActiveApp] = useState('LOADING');
 
     // Data State
@@ -25,10 +24,6 @@ const RetroConsole = ({ onGameSelect }) => {
         items: [],
         selectedIndex: 0
     });
-
-    // Difficulty Select State
-    const [currentGameItem, setCurrentGameItem] = useState(null);
-    const [selectedDifficulty, setSelectedDifficulty] = useState('EASY');
 
     const [matrix, setMatrix] = useState(createEmptyGrid());
     const [message, setMessage] = useState('Booting System...');
@@ -121,41 +116,7 @@ const RetroConsole = ({ onGameSelect }) => {
             ...saves.map(s => ({ type: 'SAVE', data: s, label: `SAVE ${s.id}` }))
         ];
 
-        // Check if this game needs difficulty select
-        const needsDifficultySelect = launchId === 'CARO_4' || launchId === 'CARO_5';
-
-        if (needsDifficultySelect) {
-            // Go to Difficulty Select screen
-            if (gameLogicRef.current) gameLogicRef.current.destroy();
-            
-            // Store the selected item and gameId for later use
-            setCurrentGameItem({ item: items[0], gameId: launchId }); // Default to NEW GAME for now
-            
-            gameLogicRef.current = new DifficultySelectLogic(
-                setMatrix,
-                setScore,
-                setMessage,
-                () => {
-                    // onExit: Back to Menu (not Scenario Select)
-                    setActiveApp('MENU');
-                    initializeMenu(currentGamesData);
-                },
-                (difficulty) => {
-                    // onSelectDifficulty: Start game with difficulty
-                    setSelectedDifficulty(difficulty);
-                    startGame(items[0], launchId, difficulty);
-                },
-                launchId
-            );
-            setActiveApp('DIFFICULTY_SELECT');
-        } else {
-            // Normal flow - go directly to Scenario Select
-            if (gameLogicRef.current) gameLogicRef.current.destroy();
-            initializeScenarioSelect(items, launchId, currentGamesData);
-        }
-    };
-
-    const initializeScenarioSelect = (items, launchId, currentGamesData) => {
+        // START SCENARIO SELECT LOGIC
         if (gameLogicRef.current) gameLogicRef.current.destroy();
         gameLogicRef.current = new ScenarioSelectLogic(
             setMatrix,
@@ -164,6 +125,9 @@ const RetroConsole = ({ onGameSelect }) => {
             () => {
                 // onExit: Back to Menu
                 setActiveApp('MENU');
+                // Re-init MenuLogic? Or just keep it resident? 
+                // Since we destroyed it, we need to reinit or swap.
+                // Simpler to just re-init MenuLogic here.
                 initializeMenu(currentGamesData);
             },
             items,
@@ -171,7 +135,10 @@ const RetroConsole = ({ onGameSelect }) => {
             (item, gameId) => startGame(item, gameId) // onStartGame
         );
 
-        setActiveApp('SCENARIO_SELECT');
+        setActiveApp('SCENARIO_SELECT'); // effectively just a label now for render effect cleanup?
+        // Actually we should rely on GameLogic for render. 
+        // But RetroConsole still has some legacy renders in useEffect that checks activeApp.
+        // We need to clean that up.
     };
 
     const initializeMenu = (data) => {
@@ -188,7 +155,7 @@ const RetroConsole = ({ onGameSelect }) => {
         setActiveApp('MENU');
     };
 
-    const startGame = (item, gameId, difficulty = 'EASY') => {
+    const startGame = (item, gameId) => {
         let loadedScore = 0;
         if (item.type === 'SAVE') {
             loadedScore = item.data.preview?.score ?? 0;
@@ -219,8 +186,7 @@ const RetroConsole = ({ onGameSelect }) => {
                 setActiveApp('MENU');
                 initializeMenu(gamesData);
             },
-            savedState,
-            difficulty
+            savedState
         );
 
         setActiveApp('PLAYING');
