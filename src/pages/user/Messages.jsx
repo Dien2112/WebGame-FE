@@ -4,52 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
-import { set } from "zod";
-import { api } from "@/lib/api";
-import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
 import { api } from "@/lib/api";
 import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
 
-// Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
-// Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
-/*
-// Giả sử lấy được data người dùng từ API, sẽ chỉnh sửa vào thứ 3 sau.
-/*
-const mockConversations = [
-  {
-    id: 1,
-    name: "Team Liquid",
-    avatar: null,
-    status: "Online • In Lobby",
-    messages: [
-      {
-        id: 1,
-        sender: "them",
-        text: "Hey! Are you guys ready for the practice match tonight?",
-      },
-      { id: 2, sender: "them", text: "We have the server set up." },
-      { id: 3, sender: "me", text: "Yeah, we are just finishing up a review." },
-      {
-        id: 4,
-        sender: "them",
-        text: "Cool, Lobby code is 12345. See you there!",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "FaZe Clan",
-    avatar: null,
-    status: "Offline",
-    messages: [{ id: 1, sender: "them", text: "GGWP! That was close." }],
-  },
-];
-*/
-*/
 
 export default function Messages() {
   //STATE
-  const { token } = useAuth();
   const { token } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -63,28 +23,37 @@ export default function Messages() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const data = await api.get('/api/messages');
+        const data = await api.get("/api/messages");
 
         // Data format check: The API returns:
         // [ { id (partnerId), name, avatar, status (bool), messages: [{id, content, is_sender, created_at}] } ]
         // UI expects:
         // { id, name, avatar, status (string), messages: [ { id, sender: 'me'|'them', text } ] }
 
-        const formatted = data.map(c => ({
+        const formatted = data.map((c) => ({
           id: c.id,
           name: c.name,
           avatar: c.avatar,
           status: c.status ? "Online" : "Offline", // API returns boolean
-          messages: c.messages.map(m => ({
+          messages: c.messages.map((m) => ({
             id: m.id,
-            sender: m.is_sender ? 'me' : 'them',
-            text: m.content
-          }))
+            sender: m.is_sender ? "me" : "them",
+            text: m.content,
+            created_at: m.created_at,
+          })),
         }));
 
         setConversations(formatted);
         if (formatted.length > 0) {
           setSelectedId(formatted[0].id);
+          const allMessages = formatted.flatMap((c) => c.messages);
+
+          if (allMessages.length > 0) {
+            const newest = allMessages.reduce((a, b) =>
+              new Date(a.created_at) > new Date(b.created_at) ? a : b
+            );
+            setLastSyncAt(newest.created_at);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -94,6 +63,70 @@ export default function Messages() {
     fetchMessages();
   }, [token]);
 
+  useEffect(() => {
+    //if (!lastSyncAt) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get("/api/messages/sync", {
+          params: { since: lastSyncAt ?? "1970-01-01T00:00:00.000Z" },
+        });
+
+        const messages = res;
+
+        if (!messages || messages.length === 0) return;
+
+        setConversations((prev) => {
+          const updated = [...prev];
+
+          messages.forEach((msg) => {
+            console.log("Processing message:", {
+              id: msg.id,
+              sender_id: msg.sender_id,
+              receiver_id: msg.receiver_id,
+              token_userId: token.userId,
+              content: msg.content,
+            });
+
+            if (msg.sender_id === token.userId) return; // Skip messages sent by self
+
+            const partnerId =
+              msg.sender_id === token.userId ? msg.receiver_id : msg.sender_id;
+
+            let conv = updated.find((c) => c.id === partnerId);
+
+            if (!conv) {
+              console.log("Creating new conversation for partner:", partnerId);
+              return; // For now, skip messages from unknown conversations
+            }
+
+            // Prevent duplicate: check ID strict hơn
+            const exists = conv.messages.some((m) => m.id === msg.id);
+            if (exists) {
+              return;
+            }
+
+            // unshift vì backend truyền DESC (mới → cũ)
+            conv.messages.unshift({
+              id: msg.id,
+              sender: msg.sender_id === token.userId ? "me" : "them",
+              text: msg.content,
+              created_at: msg.created_at,
+            });
+          });
+
+          return updated;
+        });
+
+        setLastSyncAt(messages[messages.length - 1].created_at);
+      } catch (e) {
+        console.error("Sync failed", e);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [token.userId]);
+
   //EFFECTS: Cập nhật cuộc trò chuyện được chọn
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
@@ -101,26 +134,19 @@ export default function Messages() {
   const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
 
-    // Optimistic Update (Visual Only for now, no API call requested yet)
-    // "3. ... No more (dont imply send and 5s-reset yet)" -> implies just viewing.
-    // But existing UI has send logic. I should probably keep the local state update so it feels responsive?
-    // User said "dont imply send... yet". I will leave the Send Handler as purely local state update for now 
-    // OR disable it? "Comment all the mockConversation... set the one with REAL Messages... No more".
-    // I will leave the existing handleSendMessage but it won't persist to DB.
+    const tempMessage = {
+      id: Date.now(),
+      sender: "me",
+      text: messageInput,
+      created_at: new Date().toISOString(),
+    };
 
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === selectedId
           ? {
             ...conv,
-            messages: [
-              ...conv.messages,
-              {
-                id: conv.messages.length + 1, // Temp ID
-                sender: "me",
-                text: messageInput,
-              },
-            ],
+            messages: [tempMessage, ...conv.messages],
           }
           : conv
       )
@@ -174,7 +200,7 @@ export default function Messages() {
                 <Avatar>
                   <AvatarImage src={c.avatar || undefined} />
                   <AvatarFallback className="bg-muted text-muted-foreground">
-                    {c.name ? c.name[0] : '?'}
+                    {c.name ? c.name[0] : "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -183,15 +209,13 @@ export default function Messages() {
                     <span className="text-xs opacity-70">
                       {/* Time logic if available, else blank */}
                     </span>
-                    <span className="text-xs opacity-70">
-                      {/* Time logic if available, else blank */}
-                    </span>
                   </div>
                   <p className="text-xs opacity-80 truncate">
                     {c.messages.length > 0 && (
                       <>
-                        {c.messages[c.messages.length - 1]?.sender === "me" && "You: "}
-                        {c.messages[c.messages.length - 1]?.text}
+                        {c.messages[0]?.sender === "me" &&
+                          "You: "}
+                        {c.messages[0]?.text}
                       </>
                     )}
                   </p>
@@ -212,7 +236,9 @@ export default function Messages() {
                 <Avatar>
                   <AvatarImage src={selectedConversation.avatar || undefined} />
                   <AvatarFallback>
-                    {selectedConversation.name ? selectedConversation.name[0] : '?'}
+                    {selectedConversation.name
+                      ? selectedConversation.name[0]
+                      : "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
