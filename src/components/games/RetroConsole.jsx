@@ -240,14 +240,17 @@ const RetroConsole = ({ onGameSelect }) => {
 
     return (
         <div className="flex flex-col items-center justify-center p-4 w-full">
+            <div className="text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-7 w-full">
+                {message}
+            </div>
             <DotMatrix matrix={matrix} onDotClick={handleDotClick} />
             <ConsoleControls
                 onButtonPress={handleInput}
                 showVertical={true} // Always show controls? Or logic dependent. Logic doesn't control this prop yet.
             />
-            <div className="mt-6 text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-4 w-full">
+            {/* <div className="mt-6 text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-4 w-full">
                 {message}
-            </div>
+            </div> */}
         </div>
     );
 };

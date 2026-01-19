@@ -121,9 +121,11 @@ class BaseCaroLogic extends GameLogic {
 
       // HẾT GIỜ → COMPUTER THẮNG
       if (this.remainingTime === 0) {
+        const computerColor =
+            this.state.players.Red === "COMPUTER" ? "Red" : "Blue";
         this.state = {
           ...this.state,
-          winner: "Blue",
+          winner: computerColor,
         };
         this.updateStatus();
         return;
