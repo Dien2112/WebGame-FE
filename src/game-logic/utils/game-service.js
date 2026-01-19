@@ -22,7 +22,7 @@ export const fetchGames = async () => {
     try {
         const games = await api.get('/api/games');
         // Process data to match FE expectations (render previews)
-        return games.map(g => ({
+        const processedGames = games.map(g => ({
             ...g,
             saved_game: g.saved_game.map(s => {
                 // Determine if we need to process preview
@@ -50,6 +50,19 @@ export const fetchGames = async () => {
                 };
             })
         }));
+
+        // Ensure LINE is present (Temporary/Dev addition)
+        if (!processedGames.find(g => g.internalId === 'LINE')) {
+            processedGames.push({
+                id: 999, // Temp ID
+                internalId: 'LINE',
+                name: 'Line',
+                config: {},
+                saved_game: []
+            });
+        }
+
+        return processedGames;
     } catch (error) {
         console.error("Failed to fetch games", error);
         return [];
