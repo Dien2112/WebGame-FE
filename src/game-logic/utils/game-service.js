@@ -61,6 +61,16 @@ export const fetchGames = async () => {
                 saved_game: []
             });
         }
+        
+        if (!processedGames.find(g => g.internalId === 'PAINT')) {
+            processedGames.push({
+                id: 998,
+                internalId: 'PAINT',
+                name: 'Paint',
+                config: {},
+                saved_game: []
+            });
+        }
 
         return processedGames;
     } catch (error) {
