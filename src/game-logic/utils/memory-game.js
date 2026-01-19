@@ -1,20 +1,20 @@
 import { COLORS, BUTTONS, createEmptyGrid } from './constants';
 
-// Memory Game: 4x4 grid with 8 color pairs
-// Player flips 2 cards at a time to find matching colors
+// Game ghép thẻ: Lưới 4x4 với 8 cặp màu
+// Người chơi lật 2 thẻ mỗi lượt để tìm cặp giống nhau
 
 const COLOR_PAIRS = [
     COLORS.RED,
     COLORS.BLUE,
     COLORS.YELLOW,
     COLORS.PURPLE,
-    '#F97316',      // Orange
-    '#d82ea8ff',    // Pink
-    '#06b6d4',      // Cyan
-    '#10B981'       // Green
+    '#F97316',      // Cam
+    '#d82ea8ff',    // Hồng
+    '#06b6d4',      // Xanh lơ
+    '#10B981'       // Xanh lá
 ];
 
-// Shuffle array helper
+// Hàm xáo trộn mảng
 const shuffleArray = (array) => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -24,48 +24,50 @@ const shuffleArray = (array) => {
     return arr;
 };
 
-// Generate shuffled cards (8 pairs = 16 cards)
+// Tạo 16 thẻ ngẫu nhiên (8 cặp)
 const generateCards = () => {
-    const pairs = [...COLOR_PAIRS, ...COLOR_PAIRS]; // Duplicate for pairs
+    const pairs = [...COLOR_PAIRS, ...COLOR_PAIRS]; // Nhân đôi để tạo cặp
     return shuffleArray(pairs);
 };
 
 export const initialMemoryState = {
     cards: generateCards(),
-    flipped: [],        // Indices of currently flipped cards
-    matched: [],        // Indices of matched cards
-    cursor: null,       // Current cursor position (card index)
+    flipped: [],        // Các thẻ đang lật
+    matched: [],        // Các thẻ đã ghép đúng
+    cursor: null,       // Vị trí thẻ hiện tại
     score: 0,
     moves: 0,
     gameOver: false,
-    canFlip: true,      // Prevent flipping during comparison
-    firstCard: null,    // First card index in current move
-    secondCard: null,   // Second card index in current move
-    hideTimer: 0        // Timer for auto-hiding cards
+    canFlip: true,      // Cho phép lật thẻ
+    firstCard: null,    // Thẻ đầu tiên
+    secondCard: null,   // Thẻ thứ hai
+    hideTimer: 0,       // Bộ đếm tự động úp thẻ
+    timeLeft: 120,      // Thời gian còn lại (giây) - 2 phút
+    isTimedOut: false   // Đã hết giờ chưa
 };
 
 export const updateMemory = (state, button) => {
     if (state.gameOver) {
-        // Reset on ENTER
+        // Nhấn ENTER để chơi lại
         if (button === BUTTONS.ENTER) {
             return { ...initialMemoryState, cards: generateCards() };
         }
         return state;
     }
 
-    // Only handle ENTER (triggered by Click)
+    // Chỉ xử lý ENTER (khi click thẻ)
     if (button === BUTTONS.ENTER && state.canFlip) {
         const idx = state.cursor;
 
-        // Validation
+        // Kiểm tra hợp lệ
         if (idx === null || idx === undefined || idx < 0) return state;
 
-        // Can't flip already matched or already flipped cards
+        // Không lật thẻ đã ghép hoặc đang lật
         if (state.matched.includes(idx) || state.flipped.includes(idx)) {
             return state;
         }
 
-        // First card flip
+        // Lật thẻ đầu tiên
         if (state.firstCard === null) {
             return {
                 ...state,
@@ -74,20 +76,20 @@ export const updateMemory = (state, button) => {
             };
         }
 
-        // Second card flip
+        // Lật thẻ thứ hai
         if (state.secondCard === null && state.firstCard !== idx) {
             const newFlipped = [state.firstCard, idx];
             const newMoves = state.moves + 1;
 
-            // Check if cards match
+            // So sánh 2 thẻ
             const firstColor = state.cards[state.firstCard];
             const secondColor = state.cards[idx];
 
             if (firstColor === secondColor) {
-                // Match found!
+                // Khớp!
                 const newMatched = [...state.matched, state.firstCard, idx];
                 const newScore = state.score + 10;
-                const gameOver = newMatched.length === 16; // All cards matched
+                const gameOver = newMatched.length === 16; // Đã ghép hết
 
                 return {
                     ...state,
@@ -100,14 +102,14 @@ export const updateMemory = (state, button) => {
                     gameOver
                 };
             } else {
-                // No match - show both cards briefly, then hide
+                // Không khớp - hiển thị rồi úp lại
                 return {
                     ...state,
                     flipped: newFlipped,
                     secondCard: idx,
                     moves: newMoves,
-                    canFlip: false, // Disable flipping during reveal
-                    hideTimer: 8   // Wait 0.8 seconds (8 ticks at 100ms)
+                    canFlip: false, // Khóa lật thẻ
+                    hideTimer: 9   // Đợi 0.9 giây (9 ticks × 100ms)
                 };
             }
         }
@@ -118,14 +120,14 @@ export const updateMemory = (state, button) => {
     return state;
 };
 
-// Auto-hide mismatched cards after delay
+// Tự động úp thẻ không khớp sau delay
 export const autoHideCards = (state) => {
     if (state.secondCard !== null && !state.canFlip) {
         if (state.hideTimer > 0) {
             return { ...state, hideTimer: state.hideTimer - 1 };
         }
 
-        // Reset flipped cards
+        // Reset thẻ đã lật
         return {
             ...state,
             flipped: [],
@@ -138,18 +140,46 @@ export const autoHideCards = (state) => {
     return state;
 };
 
-// Game Layout Constants
+// Cập nhật đồng hồ đếm ngược (gọi mỗi giây)
+export const updateTimer = (state) => {
+    // Không đếm nếu game đã kết thúc
+    if (state.gameOver || state.isTimedOut) {
+        return state;
+    }
+
+    // Giảm thời gian
+    const newTimeLeft = state.timeLeft - 1;
+
+    // Kiểm tra hết giờ
+    if (newTimeLeft <= 0) {
+        return {
+            ...state,
+            timeLeft: 0,
+            isTimedOut: true,
+            gameOver: true,
+            score: 0,  // Điểm về 0 khi hết giờ
+            canFlip: false
+        };
+    }
+
+    return {
+        ...state,
+        timeLeft: newTimeLeft
+    };
+};
+
+// Thông số bố trí game
 export const MEMORY_LAYOUT = {
-    offsetY: 1,
-    offsetX: 1,
-    cardSize: 4,
-    gap: 1
+    offsetY: 1,     // Khoảng cách từ trên
+    offsetX: 1,     // Khoảng cách từ trái
+    cardSize: 4,    // Kích thước thẻ (4x4)
+    gap: 1          // Khoảng cách giữa thẻ
 };
 
 export const getCardIndexFromGrid = (row, col) => {
     const { offsetY, offsetX, cardSize, gap } = MEMORY_LAYOUT;
 
-    // Normalize coordinates relative to the grid start
+    // Chuẩn hóa tọa độ về gốc (0,0)
     const r = row - offsetY;
     const c = col - offsetX;
 
@@ -160,11 +190,11 @@ export const getCardIndexFromGrid = (row, col) => {
 
     if (r >= totalSize || c >= totalSize) return -1;
 
-    // Determine potential row/col index in the 4x4 array
+    // Tìm thẻ ở hàng/cột nào trong lưới 4x4
     const gridRow = Math.floor(r / cellSize);
     const gridCol = Math.floor(c / cellSize);
 
-    // Check if the click is within the card (not in the gap)
+    // Kiểm tra click vào thẻ (không phải khoảng trống)
     const inCardY = r % cellSize < cardSize;
     const inCardX = c % cellSize < cardSize;
 
@@ -187,15 +217,15 @@ export const renderMemory = (state, tick) => {
         const startX = offsetX + col * (cardSize + gap);
 
         const FACE_DOWN_COLOR = '#475569';
-        let cardColor = FACE_DOWN_COLOR; // Default: face down
+        let cardColor = FACE_DOWN_COLOR; // Mặc định: thẻ úp
 
-        // Priority 1: Matched (Static Color)
+        // Ưu tiên 1: Thẻ đã ghép (hiển thị màu cố định)
         if (state.matched.includes(i)) {
             cardColor = state.cards[i];
         }
-        // Priority 2: Flipped (Blinking its color)
+        // Ưu tiên 2: Thẻ đang lật (nhấp nháy)
         else if (state.flipped.includes(i)) {
-            // Blink between Card Color and Face Down Color
+            // Nhấp nháy giữa màu thật và màu úp
             if (Math.floor(tick / 4) % 2 === 0) {
                 cardColor = state.cards[i];
             } else {
@@ -203,7 +233,7 @@ export const renderMemory = (state, tick) => {
             }
         }
 
-        // Draw card (4x4 block)
+        // Vẽ thẻ (khối 4x4)
         for (let dy = 0; dy < cardSize; dy++) {
             for (let dx = 0; dx < cardSize; dx++) {
                 const y = startY + dy;
