@@ -16,7 +16,7 @@ export default function ProfilePage() {
   // Initial state from auth, but will be overwritten by fetch
   const [formData, setFormData] = useState({
     name: auth?.user?.name || '',
-    bio: auth?.user?.bio || '', // Note: Auth context might not have bio initially if not updated
+    bio: auth?.user?.bio || '',
     avatar: auth?.user?.avatar || '',
   });
 
@@ -35,8 +35,6 @@ export default function ProfilePage() {
           bio: res.user.bio || '',
           avatar: res.user.avatar_url || ''
         });
-        // Also update auth context if needed? 
-        // auth.updateUser(res.user); // Optional, keeps context fresh
       }
     } catch (err) {
       console.error("Failed to fetch profile", err);
@@ -59,17 +57,17 @@ export default function ProfilePage() {
         auth?.updateUser(data.profile);
         setProfileData(prev => ({ ...prev, ...data.profile })); // Update local state
         setIsEditing(false);
-        alert('Cập nhật hồ sơ thành công!');
+        // alert('Cập nhật hồ sơ thành công!'); 
       }
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Cập nhật hồ sơ thất bại');
+      // alert('Cập nhật hồ sơ thất bại');
     }
   };
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-[#072D44] dark:text-white">Hồ sơ cá nhân</h2>
+      <h2 className="text-3xl font-bold text-[#072D44] dark:text-white">Profile</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profile Info */}
@@ -77,14 +75,14 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-[#072D44] dark:text-white">
               <User className="w-5 h-5" style={{ color: '#5790AB' }} />
-              <span>Thông tin</span>
+              <span>Info</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Tên hiển thị</Label>
+                  <Label htmlFor="name">Display Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -93,7 +91,7 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bio">Giới thiệu</Label>
+                  <Label htmlFor="bio">Bio</Label>
                   <textarea
                     id="bio"
                     value={formData.bio}
@@ -112,27 +110,51 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="flex space-x-2">
-                  <Button type="submit">Lưu</Button>
+                  <Button type="submit">Save</Button>
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                    Hủy
+                    Cancel
                   </Button>
                 </div>
               </form>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Tên</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.username || auth?.user?.name}</p>
+              <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Name</p>
+                    <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.username || profileData?.name || 'User'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
+                    <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.email || profileData?.email || 'user@example.com'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Bio</p>
+                    <p className="text-[#072D44] dark:text-white">{profileData?.bio || 'No bio yet'}</p>
+                  </div>
+                  <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.email || auth?.user?.email}</p>
+
+                {/* Avatar Section */}
+                <div className="flex-shrink-0 flex justify-center md:justify-end">
+                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#5790AB]">
+                    {(profileData?.avatar_url || profileData?.avatar) ? (
+                      <img
+                        src={profileData?.avatar_url || profileData?.avatar}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#5790AB] flex items-center justify-center text-white font-bold text-4xl">
+                        {(profileData?.username || profileData?.name || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* Fallback for onError hidden by default */}
+                    <div style={{ display: 'none' }} className="w-full h-full bg-[#5790AB] flex items-center justify-center text-white font-bold text-4xl">
+                      {(profileData?.username || profileData?.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Giới thiệu</p>
-                  <p className="text-[#072D44] dark:text-white">{profileData?.bio || 'Chưa có giới thiệu'}</p>
-                </div>
-                <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
               </div>
             )}
           </CardContent>
@@ -143,39 +165,42 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-[#072D44] dark:text-white">
               <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
-              <span>Thống kê</span>
+              <span>Statistics</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Target className="w-5 h-5" style={{ color: '#5790AB' }} />
-                <span className="text-[#072D44] dark:text-white">Tổng số trận</span>
+                <span className="text-[#072D44] dark:text-white">Total Games</span>
               </div>
-              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.totalGames || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.total_games || profileData?.totalGames || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
-                <span className="text-[#072D44] dark:text-white">Thắng</span>
+                <span className="text-[#072D44] dark:text-white">Wins</span>
               </div>
               <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.wins || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Target className="w-5 h-5" style={{ color: '#9CCDDB' }} />
-                <span className="text-[#072D44] dark:text-white">Thua</span>
+                <span className="text-[#072D44] dark:text-white">Losses</span>
               </div>
-              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.losses || 0}</span>
+              {/* Note: Backend might not send losses directly if only total and wins are tracked, can infer */}
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
+                {(profileData?.total_games || 0) - (profileData?.wins || 0)}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Calendar className="w-5 h-5" style={{ color: '#5790AB' }} />
-                <span className="text-[#072D44] dark:text-white">Tỷ lệ thắng</span>
+                <span className="text-[#072D44] dark:text-white">Win Rate</span>
               </div>
               <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
-                {profileData?.totalGames
-                  ? Math.round(((profileData?.wins || 0) / profileData.totalGames) * 100)
+                {(profileData?.total_games || 0) > 0
+                  ? Math.round(((profileData?.wins || 0) / (profileData?.total_games || 1)) * 100)
                   : 0}%
               </span>
             </div>
