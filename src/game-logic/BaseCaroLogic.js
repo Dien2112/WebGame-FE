@@ -40,6 +40,8 @@ class BaseCaroLogic extends GameLogic {
     this.computerThinkUntil = null; // Thời gian máy tính suy nghĩ
     this.pointsPerWin = pointsPerWin;
     this.pointsPerLose = pointsPerLose;
+    this.currentScore = 0; // Điểm số hiện tại trong ván chơi
+    this.scoreDisplay = ""; // Lưu thông tin điểm số để hiển thị
     this.setStatus(
       youGoFirst ? "You go first (Red)" : "Computer goes first (Red)",
     );
@@ -143,20 +145,24 @@ class BaseCaroLogic extends GameLogic {
   updateStatus() {
     if (this.state.winner) {
       if (this.state.winner === "DRAW") {
-        this.setStatus("End game: Draw!");
+        this.setStatus(`End game: Draw! | Score: ${this.currentScore}`);
         this.calculateScore("DRAW");
       } else {
         const role = this.state.players[this.state.winner];
-        this.setStatus(role === "HUMAN" ? "You Win!" : "Computer Wins!");
+        if (role === "HUMAN") {
+          this.setStatus(`You Win! +${this.pointsPerWin} points | Total: ${this.currentScore + this.pointsPerWin}`);
+        } else {
+          this.setStatus(`Computer Wins! -${this.pointsPerLose} points | Total: ${this.currentScore - this.pointsPerLose}`);
+        }
         this.calculateScore(role === "HUMAN" ? "WIN" : "LOSE");
       }
     } else {
       const role = this.state.players[this.state.turn];
       if (role === "HUMAN") {
         const sec = Math.ceil(this.remainingTime / 1000);
-        this.setStatus(`Your Turn ⏱ ${sec}s`);
+        this.setStatus(`Your Turn ⏱ ${sec}s | Score: ${this.currentScore}`);
       } else {
-        this.setStatus("Computer Thinking...");
+        this.setStatus(`Computer Thinking... | Score: ${this.currentScore}`);
       }
     }
   }
@@ -170,6 +176,7 @@ class BaseCaroLogic extends GameLogic {
     }
     // result === "DRAW" thì scoreChange = 0 (không cộng/trừ điểm)
     
+    this.currentScore += scoreChange;
     if (scoreChange !== 0) {
       this.setScore(scoreChange);
     }
