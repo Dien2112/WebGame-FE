@@ -48,6 +48,37 @@ const getAvailableMoves = (board) => {
     return moves;
 };
 
+export const computerMove = (state) => {
+    const newBoard = state.board.map(row => [...row]);
+    const moves = getAvailableMoves(newBoard);
+
+    if (moves.length > 0) {
+        const randomMove = moves[Math.floor(Math.random() * moves.length)];
+        newBoard[randomMove.r][randomMove.c] = 'O';
+
+        // Check Computer Win
+        const cpuWin = checkWin(newBoard);
+        if (cpuWin) {
+             return {
+                ...state,
+                board: newBoard,
+                winner: cpuWin.winner,
+                winningLine: cpuWin.line
+            };
+        }
+         // Check Draw (Unlikely but possible)
+        if (checkDraw(newBoard)) {
+            return { ...state, board: newBoard, winner: 'DRAW' };
+        }
+    }
+
+    return {
+        ...state,
+        board: newBoard,
+        turn: 'X' // Back to player
+    };
+};
+
 export const updateTicTacToe = (state, button) => {
     if (state.winner) {
         // Game over, any button resets
@@ -97,35 +128,9 @@ export const updateTicTacToe = (state, button) => {
                 }
 
                 // 2. COMPUTER TURN (Immediate Response)
-                let computerBoard = newBoard.map(row => [...row]);
-                const moves = getAvailableMoves(computerBoard);
-                if (moves.length > 0) {
-                    const randomMove = moves[Math.floor(Math.random() * moves.length)];
-                    computerBoard[randomMove.r][randomMove.c] = 'O';
-
-                    // Check Computer Win
-                    const cpuWin = checkWin(computerBoard);
-                    if (cpuWin) {
-                         return {
-                            ...state,
-                            board: computerBoard,
-                            cursor: { r, c },
-                            winner: cpuWin.winner,
-                            winningLine: cpuWin.line
-                        };
-                    }
-                     // Check Draw (Unlikely but possible)
-                    if (checkDraw(computerBoard)) {
-                        return { ...state, board: computerBoard, cursor: {r,c}, winner: 'DRAW' };
-                    }
-                }
-
-                return {
-                    ...state,
-                    board: computerBoard,
-                    turn: 'X', // Back to player
-                    cursor: { r, c }
-                };
+                // We pass the INTERMEDIATE state to computerMove
+                const intermediateState = { ...state, board: newBoard, turn: 'O' };
+                return computerMove(intermediateState);
             }
             break;
     }

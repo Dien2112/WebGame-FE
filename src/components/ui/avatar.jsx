@@ -16,7 +16,11 @@ Avatar.displayName = "Avatar"
 const AvatarImage = React.forwardRef(({ className, src, alt, ...props }, ref) => {
     const [hasError, setHasError] = React.useState(false);
 
-    if (hasError || !src) {
+    // Basic validation: ensure src exists and looks like a URL or data URI
+    // This prevents browser from trying to fetch "undefined", "null", or weird strings
+    const isValidSrc = src && (src.startsWith('http') || src.startsWith('data:'));
+
+    if (hasError || !isValidSrc) {
         return null;
     }
 

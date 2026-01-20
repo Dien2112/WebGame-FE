@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DotMatrix from './DotMatrix';
 import ConsoleControls from './ConsoleControls';
 import ColorPicker from './ColorPicker';
+import { Star, MessageSquare, Clock, Trophy } from 'lucide-react';
 import MenuLogic from '@/game-logic/MenuLogic';
 import ScenarioSelectLogic, { createGameLogic } from '@/game-logic/ScenarioSelectLogic';
 import { createEmptyGrid, COLORS } from '@/game-logic/utils/constants';
@@ -15,6 +16,11 @@ const RetroConsole = ({ onGameSelect }) => {
 
     // Data State
     const [gamesData, setGamesData] = useState([]);
+    const gamesDataRef = React.useRef([]);
+
+    useEffect(() => {
+        gamesDataRef.current = gamesData;
+    }, [gamesData]);
 
     // Game Logic Instance
     const gameLogicRef = React.useRef(null);
@@ -38,6 +44,8 @@ const RetroConsole = ({ onGameSelect }) => {
 
     // We keep these to pass setters to Logic
     const [score, setScore] = useState(0);
+    const [timer, setTimer] = useState(120);
+    const [isTimerDescending, setIsTimerDescending] = useState(true);
     // const [playTime, setPlayTime] = useState(0); // If needed by parent? 
     // Actually Logic handles its own time internally often, or we pass a global tick.
     // TTT Logic doesn't really use time except in display.
@@ -49,6 +57,8 @@ const RetroConsole = ({ onGameSelect }) => {
             setGamesData(data);
             setActiveApp('MENU');
             setMessage('');
+            console.log(data);
+            onGameSelect({ game: data[0], isPlaying: false });
 
             // Initialize MenuLogic
             // Initialize MenuLogic
@@ -66,20 +76,31 @@ const RetroConsole = ({ onGameSelect }) => {
 
     // Tick Loop
     useEffect(() => {
-        const timer = setInterval(() => {
+        const timerInterval = setInterval(() => {
             setTick(t => t + 1);
 
             // Delegate to GameLogic if active
             if (gameLogicRef.current) {
                 gameLogicRef.current.onTick(tick);
+
+                // Timer Logic
+                // Only run timer if playing and NOT paint game
+                if (activeApp === 'PLAYING' && gameLogicRef.current.name !== 'PAINT') {
+                    // Run every 10 ticks (1000ms) approx
+                    if (tick % 10 === 0) {
+                        if (isTimerDescending && timer > 0) {
+                            setTimer(t => Math.max(0, t - 1));
+                        }
+                    }
+                }
             }
 
             if (isTransitioning) {
                 setTransitionTick(t => t + 1);
             }
         }, 100);
-        return () => clearInterval(timer);
-    }, [isTransitioning, tick]); // Added tick to dependancy if needed, usually cleaner to use functional update or ref for tick
+        return () => clearInterval(timerInterval);
+    }, [isTransitioning, tick, activeApp, isTimerDescending, timer]); // Added dependencies for timer
 
 
     // Handle Transition Completion
@@ -97,17 +118,14 @@ const RetroConsole = ({ onGameSelect }) => {
             // Handled by MenuLogic via onHighlight callback
         } else if (activeApp === 'SCENARIO_SELECT') {
             const game = gamesData.find(g => g.internalId === scenarioState.gameId);
-            const currentItem = scenarioState.items[scenarioState.selectedIndex];
-            let s = 0, t = 0;
-            if (currentItem && currentItem.type === 'SAVE') {
-                s = currentItem.data.preview?.score ?? 0;
-                t = currentItem.data.preview?.time ?? 0;
+            if (game && onGameSelect) {
+                onGameSelect({ game, isPlaying: false });
             }
-            onGameSelect && onGameSelect(game, { score: s, time: t });
         }
-    }, [activeApp, scenarioState, gamesData, score]);
+    }, [activeApp, scenarioState, gamesData /* score removed as it caused loop/unnecessary updates? */]);
 
-    const handleMenuSelection = (launchId, currentGamesData) => {
+    const handleMenuSelection = (launchId, _unused) => {
+        const currentGamesData = gamesDataRef.current;
         const gameInfo = currentGamesData.find(g => g.internalId === launchId);
         const saves = gameInfo ? gameInfo.saved_game : [];
 
@@ -145,14 +163,23 @@ const RetroConsole = ({ onGameSelect }) => {
 
     const initializeMenu = (data) => {
         if (gameLogicRef.current) gameLogicRef.current.destroy();
+
+        // Explicitly set Playing to false when entering menu
+        // We do this via the callback or directly here if we know the default selection
+        // But MenuLogic will trigger onHighlight immediately.
+
+        const menuData = data || gamesDataRef.current;
+
         gameLogicRef.current = new MenuLogic(
             setMatrix,
             setScore,
             setMessage,
             () => { },
-            (game) => onGameSelect && onGameSelect(game, { score: 0, time: 0 }), // onHighlight: Notify parent
-            data,
-            (gameId) => handleMenuSelection(gameId, data) // onStartGame: Launch Scenario
+            (game) => {
+                if (onGameSelect) onGameSelect({ game, isPlaying: false });
+            }, // onHighlight: Notify parent
+            menuData,
+            (gameId) => handleMenuSelection(gameId, menuData) // onStartGame: Launch Scenario
         );
         setActiveApp('MENU');
     };
@@ -164,7 +191,23 @@ const RetroConsole = ({ onGameSelect }) => {
         }
 
         setScore(loadedScore);
+        // Reset Timer defaults
+        setTimer(120);
+        setIsTimerDescending(true);
+
         setMessage(`Starting ${item.label}...`);
+
+        // Notify Parent
+        if (onGameSelect) {
+            const currentGamesData = gamesDataRef.current;
+            const gameInfo = currentGamesData.find(g => g.internalId === gameId);
+            // Ensure we pass a game object even if find fails (shouldn't happen if IDs match)
+            if (gameInfo) {
+                onGameSelect({ game: gameInfo, isPlaying: true });
+            } else {
+                console.warn(`[RetroConsole] Could not find game info for ${gameId}`);
+            }
+        }
 
         // Destroy previous logic
         if (gameLogicRef.current) gameLogicRef.current.destroy();
@@ -178,6 +221,8 @@ const RetroConsole = ({ onGameSelect }) => {
             savedState = item.data?.preview;
         }
 
+        console.log(`[RetroConsole] Starting Game: ${gameId}, SavedState:`, savedState);
+
         // Use Factory to create Logic Instance
         gameLogicRef.current = createGameLogic(
             gameId,
@@ -186,7 +231,7 @@ const RetroConsole = ({ onGameSelect }) => {
             setMessage,
             () => { // onExit
                 setActiveApp('MENU');
-                initializeMenu(gamesData);
+                initializeMenu(gamesDataRef.current);
             },
             savedState
         );
@@ -269,8 +314,36 @@ const RetroConsole = ({ onGameSelect }) => {
     // Check if current game is Paint
     const isPaintGame = activeApp === 'PLAYING' && gameLogicRef.current?.name === 'PAINT';
 
+    const formatTime = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     return (
         <div className="flex flex-col items-center justify-center p-4 w-full">
+            {/* Score & Timer Panel */}
+            {!isPaintGame && activeApp === 'PLAYING' && (
+                <div className="flex justify-between w-[260px] mb-2 font-mono text-xs font-bold text-slate-100">
+                    {/* Time Box */}
+                    <div className="flex flex-col items-center justify-center w-[110px] px-1 py-1 bg-slate-800 border-2 border-slate-500 rounded-sm shadow-md">
+                        <span className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5 self-start">TIME</span>
+                        <div className="flex items-center space-x-1.5 text-sm tracking-widest text-blue-200 drop-shadow-[0_0_3px_rgba(191,219,254,0.5)]">
+                            <Clock className="w-3 h-3" />
+                            <span>{formatTime(timer)}</span>
+                        </div>
+                    </div>
+
+                    {/* Score Box */}
+                    <div className="flex flex-col items-center justify-center w-[110px] px-1 py-1 bg-slate-800 border-2 border-slate-500 rounded-sm shadow-md">
+                        <span className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5 self-start">SCORE</span>
+                        <div className="flex items-center space-x-1.5 text-sm tracking-widest text-yellow-200 drop-shadow-[0_0_3px_rgba(254,240,138,0.5)]">
+                            <Trophy className="w-3 h-3" />
+                            <span>{score}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
             {isPaintGame && (
                 <ColorPicker
                     selectedColorIndex={selectedColorIndex}

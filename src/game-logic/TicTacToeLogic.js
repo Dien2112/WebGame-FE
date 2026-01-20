@@ -1,5 +1,5 @@
 import GameLogic from './model/GameLogic';
-import { initialTicTacToeState, updateTicTacToe, renderTicTacToe } from './utils/tic-tac-toe';
+import { initialTicTacToeState, updateTicTacToe, renderTicTacToe, computerMove } from './utils/tic-tac-toe';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
 import { COLORS, createEmptyGrid } from './utils/constants';
@@ -116,6 +116,23 @@ class TicTacToeLogic extends GameLogic {
         const grid = renderTicTacToe(this.state, tick);
         this.setMatrix(grid);
         this.updateStatus();
+
+        // Check if Computer Move Needed (e.g. loaded game in 'O' turn)
+        if (this.state.turn === 'O' && !this.state.winner) {
+            // Add a small delay/throttle if needed, but for now immediate is fine
+            // We use a tick counter or similar to prevent instant moves on load if desired, 
+            // but immediate is robust.
+            
+            // To prevent rapid-fire if something is wrong, we can check a flag or throttle.
+            // But since computerMove flips turn to 'X', it runs once.
+            
+            // Artificial delay: only move if tick % 10 === 0 (1 sec)
+            if (tick % 5 === 0) { 
+                 const nextState = computerMove(this.state);
+                 this.state = nextState;
+                 this.updateStatus();
+            }
+        }
     }
 
     updateStatus() {

@@ -7,7 +7,7 @@ const DotMatrix = ({ matrix, onDotClick }) => {
 
     return (
         <div
-            className="grid gap-[2px] p-2 w-full max-w-[320px] mx-auto bg-slate-50 rounded-xl"
+            className="grid gap-[1px] p-1.5 w-full max-w-[260px] mx-auto bg-slate-50 rounded-xl"
             style={{
                 gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
                 aspectRatio: '1/1',

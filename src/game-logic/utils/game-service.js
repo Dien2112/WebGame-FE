@@ -24,6 +24,7 @@ export const fetchGames = async () => {
         console.log("games", games, "game data:" , games.data);
         const processedGames = (games.data || []).map(g => ({
             ...g,
+            internalId: g.internal_id || g.internalId,
             saved_game: (g.saved_game || []).map(s => {
                 // Determine if we need to process preview
                 let preview = s.preview;
