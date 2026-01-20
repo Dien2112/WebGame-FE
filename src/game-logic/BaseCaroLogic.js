@@ -41,7 +41,7 @@ class BaseCaroLogic extends GameLogic {
     this.pointsPerWin = pointsPerWin;
     this.pointsPerLose = pointsPerLose;
     this.currentScore = 0; // Điểm số hiện tại trong ván chơi
-    this.scoreDisplay = ""; // Lưu thông tin điểm số để hiển thị
+    this.scoreCalculated = false; // Flag để theo dõi điểm đã được tính hay chưa
     this.setStatus(
       youGoFirst ? "You go first (Red)" : "Computer goes first (Red)",
     );
@@ -146,7 +146,10 @@ class BaseCaroLogic extends GameLogic {
     if (this.state.winner) {
       if (this.state.winner === "DRAW") {
         this.setStatus(`End game: Draw! | Score: ${this.currentScore}`);
-        this.calculateScore("DRAW");
+        if (!this.scoreCalculated) {
+          this.calculateScore("DRAW");
+          this.scoreCalculated = true;
+        }
       } else {
         const role = this.state.players[this.state.winner];
         if (role === "HUMAN") {
@@ -154,7 +157,10 @@ class BaseCaroLogic extends GameLogic {
         } else {
           this.setStatus(`Computer Wins! -${this.pointsPerLose} points | Total: ${this.currentScore - this.pointsPerLose}`);
         }
-        this.calculateScore(role === "HUMAN" ? "WIN" : "LOSE");
+        if (!this.scoreCalculated) {
+          this.calculateScore(role === "HUMAN" ? "WIN" : "LOSE");
+          this.scoreCalculated = true;
+        }
       }
     } else {
       const role = this.state.players[this.state.turn];
