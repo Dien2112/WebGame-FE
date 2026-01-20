@@ -19,7 +19,8 @@ export const BUTTONS = {
   DOWN: 'DOWN',
   ENTER: 'ENTER',
   BACK: 'BACK',
-  HELP: 'HELP'
+  HELP: 'HELP',
+  PAUSE: 'PAUSE'
 };
 
 export const createEmptyGrid = () => {

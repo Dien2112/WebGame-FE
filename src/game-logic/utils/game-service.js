@@ -79,3 +79,16 @@ export const fetchGames = async () => {
         return [];
     }
 };
+
+export const saveGame = async (gameId, gameState) => {
+    try {
+        console.log(`[GameService] Saving ${gameId}...`, gameState);
+        const response = await api.post(`/api/games/${gameId}/save`, {
+            data: gameState
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Failed to save game", error);
+        throw error;
+    }
+};

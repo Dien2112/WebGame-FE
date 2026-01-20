@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, CornerDownLeft, Undo2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, CornerDownLeft, Undo2, HelpCircle, PauseCircle } from 'lucide-react';
 import { BUTTONS } from '@/game-logic/utils/constants';
 
 const ConsoleControls = ({ onButtonPress, showVertical = false }) => {
@@ -77,6 +77,12 @@ const ConsoleControls = ({ onButtonPress, showVertical = false }) => {
                     icon={<HelpCircle size={12} />}
                     variant="blue" // Select/Start
                 />
+                <ActionButton
+                    onClick={() => onButtonPress(BUTTONS.PAUSE)}
+                    label="PAUSE"
+                    icon={<PauseCircle size={12} />}
+                    variant="slate" // Pause
+                />
             </div>
         </div>
     );
@@ -100,7 +106,8 @@ const ActionButton = ({ onClick, icon, label, variant }) => {
     const colors = {
         red: "bg-red-500 hover:bg-red-400 text-white",
         yellow: "bg-yellow-400 hover:bg-yellow-300 text-black",
-        blue: "bg-blue-500 hover:bg-blue-400 text-white"
+        blue: "bg-blue-500 hover:bg-blue-400 text-white",
+        slate: "bg-slate-700 hover:bg-slate-600 text-white"
     };
 
     return (

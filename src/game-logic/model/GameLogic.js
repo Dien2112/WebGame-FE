@@ -21,6 +21,21 @@ class GameLogic extends ConsoleLogic {
         // Default: return empty grid or generic icon?
         return null; 
     }
+    /**
+     * Calculate score based on game rules
+     */
+    calculateScore(time, currentScore) {
+        // Base implementation
+        return currentScore;
+    }
+
+    /**
+     * Get current game state for saving
+     * @returns {object} Serializable game state
+     */
+    getSaveData() {
+        return null;
+    }
 }
 
 export default GameLogic;

@@ -3,12 +3,13 @@ import { initialMenuState, updateMenu, renderMenu, MENU_ITEMS } from './utils/me
 import { BUTTONS } from './utils/constants';
 
 class MenuLogic extends ConsoleLogic {
-    constructor(setMatrix, setScore, setStatus, onExit, onHighlight, data, onStartGame = null) {
+    constructor(setMatrix, setScore, setStatus, onExit, onHighlight, data, onStartGame = null, customItems = null) {
         super(setMatrix, setScore, setStatus, onExit);
         this.state = { ...initialMenuState };
-        this.onGameSelect = onStartGame; // Changed from onGameSelect to onStartGame
-        this.gamesData = data; // Changed from gamesData to data
+        this.onGameSelect = onStartGame; 
+        this.gamesData = data; 
         this.onHighlight = onHighlight;
+        this.items = customItems || MENU_ITEMS; // Use custom items or default
         
         // Initial Highlight
         this.handleHighlight();
@@ -17,7 +18,7 @@ class MenuLogic extends ConsoleLogic {
     onConsolePress(action, tick) {
         if (action === BUTTONS.ENTER) {
             // Check for launch
-            const nextState = updateMenu(this.state, action);
+            const nextState = updateMenu(this.state, action, this.items);
             if (nextState.launch) {
                 // Game Selected
                 const launchId = nextState.launch;
@@ -27,7 +28,7 @@ class MenuLogic extends ConsoleLogic {
             }
         } else {
             const prevState = this.state;
-            this.state = updateMenu(this.state, action);
+            this.state = updateMenu(this.state, action, this.items);
             if (this.state.selectedIndex !== prevState.selectedIndex) {
                 this.handleHighlight();
             }
@@ -36,20 +37,18 @@ class MenuLogic extends ConsoleLogic {
 
     handleHighlight() {
         if (!this.onHighlight) return;
-        const item = MENU_ITEMS[this.state.selectedIndex];
+        const item = this.items[this.state.selectedIndex];
         if (item) {
-             const game = this.gamesData.find(g => g.internalId === item.id);
-             const finalGame = game || this.gamesData[this.state.selectedIndex]; // Fallback
+             // Try to find matching game data by ID or InternalID
+             const id = item.id || item.internalId;
+             const game = this.gamesData ? this.gamesData.find(g => g.internalId === id) : null;
+             const finalGame = game || item; // Fallback to item itself if no game data found (e.g. Pause Menu)
              this.onHighlight(finalGame);
         }
     }
 
     handleGameLaunch(launchId) {
-        // This is where we might transition to a Scenario Select or directly start logic
-        // For now, standard behavior was to go to SCENARIO_SELECT in RetroConsole
-        // But the user wants standardization.
-        // Let's assume for now MenuLogic handles the "Selection" and notifies the parent
-        // or effectively "switches" the logic. 
+        // ... (same as before)
         
         // Use the callback provided in constructor
         if (this.onGameSelect) {
@@ -58,12 +57,14 @@ class MenuLogic extends ConsoleLogic {
     }
 
     onTick(tick) {
-        const grid = renderMenu(this.state, tick);
+        const grid = renderMenu(this.state, tick, this.items);
         this.setMatrix(grid);
         
-        const item = MENU_ITEMS[this.state.selectedIndex];
+        const item = this.items[this.state.selectedIndex];
         if (item) {
-            this.setStatus(`${item.label} (${this.state.selectedIndex + 1}/${MENU_ITEMS.length})`);
+            // Show label and index
+            const label = item.label || item.name || '';
+            this.setStatus(`${label} (${this.state.selectedIndex + 1}/${this.items.length})`);
         }
     }
 }

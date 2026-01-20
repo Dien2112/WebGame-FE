@@ -12,6 +12,7 @@ class TicTacToeLogic extends GameLogic {
             ...(savedState || {})
         };
         this.setStatus('TIC-TAC-TOE');
+        this.name = 'TICTACTOE';
         this.state = this.status; // Ensure state is synced
         if (!this.state.cursor) this.state.cursor = { r: 1, c: 1 };
     }
@@ -142,6 +143,15 @@ class TicTacToeLogic extends GameLogic {
         else baseMsg = `TURN:${this.state.turn}`;
         
         this.setStatus(baseMsg);
+    }
+
+    getSaveData(time) {
+        return {
+            time: time || 0,
+            board: this.state.board,
+            turn: this.state.turn,
+            winner: this.state.winner
+        };
     }
 }
 

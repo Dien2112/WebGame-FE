@@ -40,7 +40,21 @@ class LineLogic extends GameLogic {
         };
         
         this.setStatus('LINE');
+        this.name = 'LINE';
+        this.status.board = this.status.board || this.initBoard(); // Ensure board exists if savedState was partial
         this.state = this.status;
+    }
+
+    getSaveData() {
+        return {
+            board: this.state.board,
+            score: this.score || 0, // Assuming score is tracked in parent or here? standard GameLogic tracks score via setScore? 
+            // Wait, GameLogic constructor takes setScore. But where is the score value stored? 
+            // Usually in React state passed down. But logic might want to store it to restore it?
+            // RetroConsole keeps it. But we just save 'board'.
+            // User requested check preview/body. I will save board.
+            // And logic state.
+        };
     }
 
     // ... initBoard same ...
@@ -376,11 +390,25 @@ class LineLogic extends GameLogic {
     preview(saveData, tick) {
         const grid = createEmptyGrid();
         
-        // Draw static "LINE" text or a pattern
-        drawSprite(grid, getCharGrid('L'), 5, 2, COLORS.RED);
-        drawSprite(grid, getCharGrid('I'), 5, 6, COLORS.GREEN);
-        drawSprite(grid, getCharGrid('N'), 5, 10, COLORS.BLUE);
-        drawSprite(grid, getCharGrid('E'), 5, 14, COLORS.YELLOW);
+        if (!saveData || !saveData.board) {
+            // New Game Preview
+            drawSprite(grid, getCharGrid('L'), 5, 2, COLORS.RED);
+            drawSprite(grid, getCharGrid('I'), 5, 6, COLORS.GREEN);
+            drawSprite(grid, getCharGrid('N'), 5, 10, COLORS.BLUE);
+            drawSprite(grid, getCharGrid('E'), 5, 14, COLORS.YELLOW);
+            return grid;
+        }
+
+        // Saved Game Preview: Render Board
+        const board = saveData.board;
+        // reuse drawTile logic or simplistic render
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (board[r] && board[r][c] && board[r][c].color) {
+                    this.drawTile(grid, r, c, board[r][c].color, tick, false, false, 0);
+                }
+            }
+        }
 
         return grid;
     }

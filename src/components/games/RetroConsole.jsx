@@ -4,9 +4,10 @@ import ConsoleControls from './ConsoleControls';
 import ColorPicker from './ColorPicker';
 import { Star, MessageSquare, Clock, Trophy } from 'lucide-react';
 import MenuLogic from '@/game-logic/MenuLogic';
+import PauseLogic from '@/game-logic/PauseLogic';
 import ScenarioSelectLogic, { createGameLogic } from '@/game-logic/ScenarioSelectLogic';
-import { createEmptyGrid, COLORS } from '@/game-logic/utils/constants';
-import { fetchGames } from '@/game-logic/utils/game-service';
+import { createEmptyGrid, COLORS, BUTTONS } from '@/game-logic/utils/constants';
+import { fetchGames, saveGame } from '@/game-logic/utils/game-service';
 
 // ... (existing imports)
 
@@ -24,6 +25,7 @@ const RetroConsole = ({ onGameSelect }) => {
 
     // Game Logic Instance
     const gameLogicRef = React.useRef(null);
+    const pausedGameLogicRef = React.useRef(null);
 
     // Scenario State
     const [scenarioState, setScenarioState] = useState({
@@ -148,7 +150,7 @@ const RetroConsole = ({ onGameSelect }) => {
                 // Re-init MenuLogic? Or just keep it resident? 
                 // Since we destroyed it, we need to reinit or swap.
                 // Simpler to just re-init MenuLogic here.
-                initializeMenu(currentGamesData);
+                refreshMenu();
             },
             items,
             launchId,
@@ -159,6 +161,106 @@ const RetroConsole = ({ onGameSelect }) => {
         // Actually we should rely on GameLogic for render. 
         // But RetroConsole still has some legacy renders in useEffect that checks activeApp.
         // We need to clean that up.
+    };
+
+    const handlePause = () => {
+        if (activeApp === 'PLAYING') {
+            pausedGameLogicRef.current = gameLogicRef.current;
+
+            gameLogicRef.current = new PauseLogic(
+                setMatrix,
+                setScore,
+                setMessage,
+                () => handleResume(), // onResume
+                () => handleSaveGame(), // onSave
+                () => { // onExit (optional, maybe added to PauseLogic later)
+                    if (pausedGameLogicRef.current) pausedGameLogicRef.current.destroy();
+                    pausedGameLogicRef.current = null;
+                    setActiveApp('MENU');
+                    refreshMenu();
+                }
+            );
+            setActiveApp('PAUSED');
+            setMessage('PAUSED');
+        } else if (activeApp === 'PAUSED') {
+            handleResume();
+        }
+    };
+
+    const handleResume = () => {
+        if (pausedGameLogicRef.current) {
+            gameLogicRef.current.destroy(); // Destroy menu
+            gameLogicRef.current = pausedGameLogicRef.current;
+            pausedGameLogicRef.current = null;
+            setActiveApp('PLAYING');
+            setMessage('RESUMING...');
+        } else {
+            // Fallback
+            initializeMenu(gamesDataRef.current);
+        }
+    };
+
+    const handlePauseAction = async (actionId) => {
+        if (actionId === 'RESUME') {
+            handleResume();
+        } else if (actionId === 'SAVE') {
+            await handleSaveGame();
+        } else if (actionId === 'EXIT') {
+            if (pausedGameLogicRef.current) pausedGameLogicRef.current.destroy();
+            pausedGameLogicRef.current = null;
+            setActiveApp('MENU');
+            refreshMenu();
+        }
+    };
+
+    const handleSaveGame = async () => {
+        if (pausedGameLogicRef.current) {
+            setMessage('SAVING...');
+            const logic = pausedGameLogicRef.current;
+            // Pass current timer (from RetroConsole state) to logic if needed
+            const gameState = logic.getSaveData ? logic.getSaveData(timer) : null;
+            const gameId = logic.name; // Logic should have name matching internalId
+
+            if (gameState && gameId) {
+                try {
+                    await saveGame(gameId, { preview: gameState });
+                    setMessage('GAME SAVED!');
+                    // Update cache silently so if they exit later it's fresh?
+                    // Actually, refreshMenu on exit covers it. 
+                    // But if they save, resume, play more, save again...
+                    // We don't need to refresh MENU data until we GO to menu.
+                    // But user might want to see save slot update immediately? No, valid only when loading.
+
+                    // We can trigger a background fetch just in case.
+                    fetchGames().then(d => setGamesData(d));
+
+                    setTimeout(() => {
+                        handleResume(); // Auto resume after save
+                    }, 1000);
+                } catch (e) {
+                    setMessage('SAVE FAILED');
+                    setTimeout(() => {
+                        // Stay in menu
+                        setMessage('PAUSED');
+                    }, 1000);
+                }
+            } else {
+                setMessage('CANNOT SAVE');
+            }
+        }
+    };
+
+    const refreshMenu = () => {
+        // Re-fetch logic
+        fetchGames().then(data => {
+            setGamesData(data); // This updates ref
+            // Note: MenuLogic needs to be re-initialized with new data?
+            // Yes, initializeMenu calls new MenuLogic with data.
+            // If data is passed to initializeMenu, it uses it.
+            // We need to wait for fetch? 
+            // Or just fetch and then init.
+            initializeMenu(data);
+        });
     };
 
     const initializeMenu = (data) => {
@@ -229,9 +331,10 @@ const RetroConsole = ({ onGameSelect }) => {
             setMatrix,
             setScore,
             setMessage,
+            setMessage,
             () => { // onExit
                 setActiveApp('MENU');
-                initializeMenu(gamesDataRef.current);
+                refreshMenu();
             },
             savedState
         );
@@ -247,6 +350,11 @@ const RetroConsole = ({ onGameSelect }) => {
         if (activeApp === 'LOADING') return;
 
         // Unified Delegation to GameLogic
+        if (button === BUTTONS.PAUSE) {
+            handlePause();
+            return;
+        }
+
         if (gameLogicRef.current) {
             gameLogicRef.current.onConsolePress(button, tick);
             return;
