@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
-import {AuthProvider} from '../../context/AuthContext';
-import { projectId } from '../../lib/utils';
+import { AuthProvider } from '../../context/AuthContext';
+import { api } from '../../lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Trophy, Award, Star, Medal } from 'lucide-react';
 
@@ -14,15 +14,7 @@ export default function Achievements() {
 
   const fetchAchievements = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-2f44b6f3/achievements`,
-        {
-          headers: {
-            Authorization: `Bearer ${auth?.accessToken}`,
-          },
-        }
-      );
-      const data = await response.json();
+      const data = await api.get('/api/achievements');
       if (data.achievements) {
         setAchievements(data.achievements);
       }

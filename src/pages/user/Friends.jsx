@@ -1,183 +1,168 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { MOCK_FRIENDS, MOCK_FRIEND_REQUESTS, MOCK_USERS_SEARCH } from "@/lib/mockData";
-import { UserPlus, UserMinus, Check, X, Users, UserCheck, Search } from "lucide-react";
+import { Check, X, Users, UserCheck, Search, UserPlus, UserMinus, ChevronLeft, ChevronRight } from "lucide-react";
+import { debounce } from "@/lib/utils";
 
 export default function Friends() {
     const { token } = useAuth();
-    const [friends, setFriends] = useState([]);
-    const [friendRequests, setFriendRequests] = useState([]);
-    const [activeTab, setActiveTab] = useState("friends"); // "friends" or "requests"
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [useMockData, setUseMockData] = useState(true); // Toggle for mock data
+    const [activeTab, setActiveTab] = useState("friends"); // "friends", "requests", "find"
 
-    // Add Friend dropdown states
-    const [showAddFriend, setShowAddFriend] = useState(false);
+    // Data States
+    const [friendsData, setFriendsData] = useState({ data: [], pagination: { page: 1, totalPages: 1 } });
+    const [requests, setRequests] = useState([]);
+    const [searchData, setSearchData] = useState({ data: [], pagination: { page: 1, totalPages: 1 } });
+
+    // UI States
+    const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState([]);
-    const [searching, setSearching] = useState(false);
-    const dropdownRef = useRef(null);
+    const [error, setError] = useState("");
 
-    useEffect(() => {
-        fetchData();
-    }, [token]);
+    // Pagination States
+    const [friendsPage, setFriendsPage] = useState(1);
+    const [searchPage, setSearchPage] = useState(1);
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setShowAddFriend(false);
-                setSearchQuery("");
-                setSearchResults([]);
-            }
-        };
-
-        if (showAddFriend) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [showAddFriend]);
-
-    const fetchData = async () => {
+    const fetchFriends = useCallback(async (page = 1) => {
         try {
-            if (useMockData) {
-                // Use mock data for development
-                setTimeout(() => {
-                    setFriends(MOCK_FRIENDS);
-                    setFriendRequests(MOCK_FRIEND_REQUESTS);
-                    setLoading(false);
-                }, 500); // Simulate API delay
+            setLoading(true);
+            const res = await api.get(`/api/friends?page=${page}&limit=9`);
+            // Backend returns { data, pagination }
+            // If backend hasn't been updated yet/cached, might return array. Handle both.
+            if (Array.isArray(res)) {
+                setFriendsData({ data: res, pagination: { page: 1, totalPages: 1 } });
             } else {
-                const [friendsData, requestsData] = await Promise.all([
-                    api.get('/api/friends'),
-                    api.get('/api/friends/requests')
-                ]);
-                setFriends(friendsData);
-                setFriendRequests(requestsData);
-                setLoading(false);
+                setFriendsData(res);
             }
         } catch (err) {
-            setError(err.message);
+            console.error("Failed to fetch friends", err);
+            setError("Failed to load friends");
+        } finally {
             setLoading(false);
+        }
+    }, []);
+
+    const fetchRequests = useCallback(async () => {
+        try {
+            const res = await api.get('/api/friends/invitation'); // Correct endpoint
+            setRequests(res || []);
+        } catch (err) {
+            console.error("Failed to fetch requests", err);
+        }
+    }, []);
+
+    const searchUsers = useCallback(async (query, page = 1) => {
+        if (!query.trim()) {
+            setSearchData({ data: [], pagination: { page: 1, totalPages: 1 } });
+            return;
+        }
+        try {
+            setLoading(true);
+            const res = await api.get(`/api/friends/search?q=${encodeURIComponent(query)}&page=${page}&limit=10`);
+            setSearchData(res); // Expecting { data, pagination }
+        } catch (err) {
+            console.error("Search failed", err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // Debounced search
+    const debouncedSearch = useCallback(debounce((query, page) => {
+        searchUsers(query, page);
+    }, 500), []);
+
+    // Initial Load
+    useEffect(() => {
+        if (activeTab === "friends") fetchFriends(friendsPage);
+        if (activeTab === "requests") fetchRequests();
+        if (activeTab === "find") searchUsers(searchQuery, searchPage);
+    }, [activeTab, friendsPage, searchPage, token]);
+
+    // Handle Search Input
+    const handleSearchInput = (e) => {
+        const val = e.target.value;
+        setSearchQuery(val);
+        setSearchPage(1); // Reset to page 1 on new search
+        debouncedSearch(val, 1);
+    };
+
+    // Actions
+    const handleSendRequest = async (userId) => {
+        try {
+            await api.post(`/api/friends/invite/${userId}`);
+            // Update UI to show 'Sent' or refresh?
+            // For simplicity, just refresh search (or optimistically update)
+            searchUsers(searchQuery, searchPage);
+            // Optionally show toast
+        } catch (err) {
+            alert(err.message || "Failed to send request");
         }
     };
 
-    if (loading) return <div>Loading friends...</div>;
-    if (error) return <div className="text-red-500">Error: {error}</div>;
+    const handleAccept = async (invitationId) => {
+        try {
+            await api.post(`/api/friends/invitation/${invitationId}`);
+            fetchRequests(); // Refresh list
+            fetchFriends(friendsPage); // Refresh friends in background
+        } catch (err) {
+            alert("Failed to accept");
+        }
+    };
 
-    const pendingCount = friendRequests.filter(req => req.status === 'pending').length;
+    const handleReject = async (invitationId) => {
+        try {
+            await api.delete(`/api/friends/invitation/${invitationId}`);
+            fetchRequests();
+        } catch (err) {
+            alert("Failed to reject");
+        }
+    };
+
+    const handleRemoveFriend = async (friendId) => {
+        if (!confirm("Are you sure you want to remove this friend?")) return;
+        try {
+            await api.delete(`/api/friends/${friendId}`);
+            fetchFriends(friendsPage);
+        } catch (err) {
+            alert("Failed to remove friend");
+        }
+    };
+
+    const renderPagination = (pagination, setPage) => {
+        if (!pagination || pagination.totalPages <= 1) return null;
+        return (
+            <div className="flex justify-center gap-2 mt-4">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pagination.page <= 1}
+                    onClick={() => setPage(p => p - 1)}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="py-2 text-sm text-gray-500">
+                    Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pagination.page >= pagination.totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        );
+    };
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-bold">Friends</h3>
-
-                {/* Add Friend Dropdown */}
-                <div className="relative" ref={dropdownRef}>
-                    <Button
-                        className="gap-2"
-                        onClick={() => setShowAddFriend(!showAddFriend)}
-                    >
-                        <UserPlus className="h-4 w-4" />
-                        Add Friend
-                    </Button>
-
-                    {/* Dropdown */}
-                    {showAddFriend && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border z-50">
-                            {/* Search Input */}
-                            <div className="p-4 border-b">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="text"
-                                        placeholder="Tìm kiếm theo tên hoặc email..."
-                                        className="pl-10"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        autoFocus
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Search Results */}
-                            <div className="max-h-96 overflow-y-auto">
-                                {searchQuery.length === 0 ? (
-                                    <div className="p-8 text-center text-muted-foreground">
-                                        <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                        <p className="text-sm">Nhập tên hoặc email để tìm kiếm</p>
-                                    </div>
-                                ) : MOCK_USERS_SEARCH.filter(user =>
-                                    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-                                ).length === 0 ? (
-                                    <div className="p-8 text-center text-muted-foreground">
-                                        <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                        <p className="text-sm">Không tìm thấy người dùng</p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y">
-                                        {MOCK_USERS_SEARCH
-                                            .filter(user =>
-                                                user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                                user.email.toLowerCase().includes(searchQuery.toLowerCase())
-                                            )
-                                            .map((user) => (
-                                                <div key={user.id} className="p-3 hover:bg-gray-50 flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                                        {user.avatar_url ? (
-                                                            <img
-                                                                src={user.avatar_url}
-                                                                alt={user.username}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <span className="font-semibold text-white uppercase">
-                                                                {user.username[0]}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm truncate">{user.username}</p>
-                                                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                                    </div>
-                                                    {user.is_friend ? (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            disabled
-                                                            className="flex-shrink-0"
-                                                        >
-                                                            <Check className="h-3 w-3 mr-1" />
-                                                            Bạn bè
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            size="sm"
-                                                            className="flex-shrink-0"
-                                                        >
-                                                            <UserPlus className="h-3 w-3 mr-1" />
-                                                            Gửi lời mời kết bạn
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
+            <div>
+                <h3 className="text-2xl font-bold">Social</h3>
             </div>
 
             {/* Tabs */}
@@ -191,8 +176,8 @@ export default function Friends() {
                 >
                     <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Bạn bè
-                        <span className="ml-1 text-sm">({friends.length})</span>
+                        My Friends
+                        <span className="ml-1 text-sm bg-gray-100 px-2 rounded-full">{friendsData.pagination?.total || friendsData.data.length || 0}</span>
                     </div>
                 </button>
                 <button
@@ -204,113 +189,173 @@ export default function Friends() {
                 >
                     <div className="flex items-center gap-2">
                         <UserCheck className="h-4 w-4" />
-                        Lời mời kết bạn
-                        {pendingCount > 0 && (
+                        Requests
+                        {requests.length > 0 && (
                             <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
-                                {pendingCount}
+                                {requests.length}
                             </span>
                         )}
                     </div>
                 </button>
+                <button
+                    onClick={() => setActiveTab("find")}
+                    className={`px-4 py-2 font-medium transition-colors relative ${activeTab === "find"
+                        ? "text-primary border-b-2 border-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        Find Friends
+                    </div>
+                </button>
             </div>
 
-            {/* Friends List */}
+            {/* Content: Friends */}
             {activeTab === "friends" && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {friends.length === 0 ? (
-                        <div className="col-span-full text-center py-12 text-muted-foreground">
+                <div className="space-y-4">
+                    {loading && friendsData.data.length === 0 ? (
+                        <div className="text-center py-12">Loading...</div>
+                    ) : friendsData.data.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
                             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Chưa có bạn bè nào.</p>
+                            <p>You have no friends yet.</p>
+                            <Button variant="link" onClick={() => setActiveTab("find")}>Find new friends</Button>
                         </div>
                     ) : (
-                        friends.map((item) => (
-                            <Card key={item.id} className="hover:shadow-md transition-shadow">
-                                <CardContent className="flex items-center gap-4 p-4">
-                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
-                                        {item.friend_info.avatar_url ? (
-                                            <img
-                                                src={item.friend_info.avatar_url}
-                                                alt={item.friend_info.username}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="font-semibold text-lg text-white uppercase">
-                                                {item.friend_info.username[0]}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {friendsData.data.map((item) => (
+                                <Card key={item.id || item.friendship_id} className="hover:shadow-md transition-shadow">
+                                    <CardContent className="flex items-center gap-4 p-4">
+                                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
+                                            {item.avatar ? (
+                                                <img src={item.avatar} alt={item.username} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <span className="font-semibold text-lg text-white uppercase">{item.username[0]}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{item.username}</p>
+                                            <p className="text-xs text-muted-foreground">{item.email}</p>
+                                            <span className={`text-[10px] ${item.is_online ? 'text-green-500' : 'text-gray-400'}`}>
+                                                {item.is_online ? 'Online' : 'Offline'}
                                             </span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{item.friend_info.username}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {item.friend_info.email}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                    >
-                                        <UserMinus className="h-4 w-4" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            onClick={() => handleRemoveFriend(item.id)}
+                                        >
+                                            <UserMinus className="h-4 w-4" />
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                    {renderPagination(friendsData.pagination, setFriendsPage)}
+                </div>
+            )}
+
+            {/* Content: Requests */}
+            {activeTab === "requests" && (
+                <div className="space-y-4">
+                    {requests.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No pending requests.</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {requests.map((request) => (
+                                <Card key={request.invitation_id} className="hover:shadow-md transition-shadow">
+                                    <CardContent className="flex items-center gap-4 p-4">
+                                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center overflow-hidden">
+                                            {request.user.avatar ? (
+                                                <img src={request.user.avatar} alt={request.user.username} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <span className="font-semibold text-lg text-white uppercase">{request.user.username[0]}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{request.user.username}</p>
+                                            <div className="flex gap-2 mt-2">
+                                                <Button size="sm" className="bg-green-500 hover:bg-green-600 h-7 text-xs" onClick={() => handleAccept(request.invitation_id)}>
+                                                    Accept
+                                                </Button>
+                                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleReject(request.invitation_id)}>
+                                                    Reject
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     )}
                 </div>
             )}
 
-            {/* Friend Requests */}
-            {activeTab === "requests" && (
-                <div className="space-y-4">
-                    {friendRequests.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Không có lời mời kết bạn nào.</p>
-                        </div>
-                    ) : (
-                        friendRequests.map((request) => (
-                            <Card key={request.id} className="hover:shadow-md transition-shadow">
-                                <CardContent className="flex items-center gap-4 p-4">
-                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center overflow-hidden">
-                                        {request.requester_info.avatar_url ? (
-                                            <img
-                                                src={request.requester_info.avatar_url}
-                                                alt={request.requester_info.username}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="font-semibold text-lg text-white uppercase">
-                                                {request.requester_info.username[0]}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{request.requester_info.username}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {request.requester_info.email}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            className="gap-1 bg-green-500 hover:bg-green-600"
-                                        >
-                                            <Check className="h-4 w-4" />
-                                            Chấp nhận
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="gap-1 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        >
-                                            <X className="h-4 w-4" />
-                                            Từ chối
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
+            {/* Content: Find Friends */}
+            {activeTab === "find" && (
+                <div className="space-y-6">
+                    <div className="relative max-w-md mx-auto">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Search by username or email..."
+                            className="pl-10"
+                            value={searchQuery}
+                            onChange={handleSearchInput}
+                        />
+                    </div>
+
+                    <div className="space-y-4">
+                        {loading ? (
+                            <div className="text-center">Searching...</div>
+                        ) : searchData.data.length === 0 && searchQuery ? (
+                            <div className="text-center text-muted-foreground">No users found.</div>
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {searchData.data.map((user) => (
+                                    <Card key={user.id} className="hover:shadow-md transition-shadow">
+                                        <CardContent className="flex items-center gap-4 p-4">
+                                            <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                                {user.avatar ? (
+                                                    <img src={user.avatar} alt={user.username} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <span className="font-semibold text-lg text-gray-500 uppercase">{user.username[0]}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{user.username}</p>
+                                                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                                {user.relationship === 'friend' ? (
+                                                    <Button size="sm" variant="outline" className="mt-2 w-full h-8 text-xs text-green-600" disabled>
+                                                        <Check className="h-3 w-3 mr-2" /> Friend
+                                                    </Button>
+                                                ) : user.relationship === 'sent' ? (
+                                                    <Button size="sm" variant="secondary" className="mt-2 w-full h-8 text-xs" disabled>
+                                                        <UserCheck className="h-3 w-3 mr-2" /> Request Sent
+                                                    </Button>
+                                                ) : user.relationship === 'received' ? (
+                                                    <Button size="sm" className="mt-2 w-full h-8 text-xs bg-green-500 hover:bg-green-600" onClick={() => handleAccept(user.id)}>
+                                                        <UserPlus className="h-3 w-3 mr-2" /> Accept Request
+                                                    </Button>
+                                                ) : (
+                                                    <Button size="sm" className="mt-2 w-full h-8 text-xs" onClick={() => handleSendRequest(user.id)}>
+                                                        <UserPlus className="h-3 w-3 mr-2" /> Add Friend
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                        {renderPagination(searchData.pagination, setSearchPage)}
+                    </div>
                 </div>
             )}
         </div>

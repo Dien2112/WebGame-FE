@@ -1,6 +1,6 @@
-import React, { useState, useContext } from 'react';
-import {AuthProvider} from '../../context/AuthContext';
-import { projectId } from '../../lib/utils';
+import React, { useState, useContext, useEffect } from 'react';
+import { AuthProvider } from '../../context/AuthContext';
+import { api } from '../../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -10,31 +10,56 @@ import { User, Trophy, Target, Calendar } from 'lucide-react';
 export default function ProfilePage() {
   const auth = useContext(AuthProvider);
   const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Initial state from auth, but will be overwritten by fetch
   const [formData, setFormData] = useState({
     name: auth?.user?.name || '',
-    bio: auth?.user?.bio || '',
+    bio: auth?.user?.bio || '', // Note: Auth context might not have bio initially if not updated
     avatar: auth?.user?.avatar || '',
   });
+
+  useEffect(() => {
+    fetchProfile();
+  }, [auth?.token]);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/api/users/profile');
+      if (res.user) {
+        setProfileData(res.user);
+        setFormData({
+          name: res.user.username || '',
+          bio: res.user.bio || '',
+          avatar: res.user.avatar_url || ''
+        });
+        // Also update auth context if needed? 
+        // auth.updateUser(res.user); // Optional, keeps context fresh
+      }
+    } catch (err) {
+      console.error("Failed to fetch profile", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-2f44b6f3/profile`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${auth?.accessToken}`,
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      body = {
+        name: formData.name,
+        bio: formData.bio,
+        avatar: formData.avatar,
+      };
+      const response = await api.put('/api/users/profile', body);
 
       const data = await response.json();
       if (data.profile) {
         auth?.updateUser(data.profile);
+        setProfileData(prev => ({ ...prev, ...data.profile })); // Update local state
         setIsEditing(false);
         alert('Cập nhật hồ sơ thành công!');
       }
@@ -99,15 +124,15 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Tên</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.name || 'chu'}</p>
+                  <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.username || auth?.user?.name}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.email || 'user@example.com'}</p>
+                  <p className="font-semibold text-[#072D44] dark:text-white">{profileData?.email || auth?.user?.email}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Giới thiệu</p>
-                  <p className="text-[#072D44] dark:text-white">{auth?.user?.bio || 'Chưa có giới thiệu'}</p>
+                  <p className="text-[#072D44] dark:text-white">{profileData?.bio || 'Chưa có giới thiệu'}</p>
                 </div>
                 <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
               </div>
@@ -129,21 +154,21 @@ export default function ProfilePage() {
                 <Target className="w-5 h-5" style={{ color: '#5790AB' }} />
                 <span className="text-[#072D44] dark:text-white">Tổng số trận</span>
               </div>
-              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.totalGames || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.totalGames || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5" style={{ color: '#5790AB' }} />
                 <span className="text-[#072D44] dark:text-white">Thắng</span>
               </div>
-              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.wins || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.wins || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Target className="w-5 h-5" style={{ color: '#9CCDDB' }} />
                 <span className="text-[#072D44] dark:text-white">Thua</span>
               </div>
-              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{auth?.user?.losses || 0}</span>
+              <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">{profileData?.losses || 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -151,14 +176,14 @@ export default function ProfilePage() {
                 <span className="text-[#072D44] dark:text-white">Tỷ lệ thắng</span>
               </div>
               <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
-                {auth?.user?.totalGames
-                  ? Math.round(((auth?.user?.wins || 0) / auth.user.totalGames) * 100)
+                {profileData?.totalGames
+                  ? Math.round(((profileData?.wins || 0) / profileData.totalGames) * 100)
                   : 0}%
               </span>
             </div>
           </CardContent>
         </Card>
       </div>
-    </div>  
+    </div>
   );
 }

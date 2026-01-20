@@ -23,7 +23,7 @@ const GameDetailsPanel = ({ game, activeGameId, runtimeStats }) => {
     const fetchComments = async (gameId) => {
         try {
             setLoading(true);
-            const data = await api.get(`/comments/${gameId}`);
+            const data = await api.get(`/api/comments/${gameId}`);
             setComments(data.comments);
             setStats(data.stats);
         } catch (error) {
@@ -42,10 +42,9 @@ const GameDetailsPanel = ({ game, activeGameId, runtimeStats }) => {
             const payload = {
                 content: newComment,
                 rating: newRating,
-                user_id: 'a0000000-0000-0000-0000-000000000001' // Hardcoded for this demo task as per seed
             };
 
-            const res = await api.post(`/comments/${game.id}`, payload);
+            const res = await api.post(`/api/comments/${game.id}`, payload);
             if (res) {
                 setNewComment('');
                 fetchComments(game.id);

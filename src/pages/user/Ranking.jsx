@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MOCK_RANKINGS, MOCK_FRIENDS_RANKINGS } from "@/lib/mockRankingData";
+// import { MOCK_RANKINGS, MOCK_FRIENDS_RANKINGS } from "@/lib/mockRankingData"; // Removed
 
 export default function Ranking() {
     const { token } = useAuth();
@@ -30,35 +30,12 @@ export default function Ranking() {
     const fetchRankings = async () => {
         setLoading(true);
         try {
-            // Use mock data for preview
-            const USE_MOCK_DATA = true;
-
-            let data;
-            if (USE_MOCK_DATA) {
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 500));
-
-                // Get mock data based on tab
-                const mockData = activeTab === "friends" ? MOCK_FRIENDS_RANKINGS : MOCK_RANKINGS;
-
-                // Filter by game if selected
-                data = selectedGame
-                    ? mockData.filter(player => {
-                        const gameMap = {
-                            "caro_5": "Caro (High 5)",
-                            "tictactoe": "Tic-Tac-Toe",
-                            "chess": "Cờ Vua"
-                        };
-                        return player.game_name === gameMap[selectedGame];
-                    })
-                    : mockData;
-            } else {
-                const params = new URLSearchParams({
-                    type: activeTab,
-                    ...(selectedGame && { game: selectedGame })
-                });
-                data = await api.get(`/api/rankings?${params}`);
-            }
+            // Real API Call
+            const params = new URLSearchParams({
+                type: activeTab,
+                ...(selectedGame && { game: selectedGame })
+            });
+            const data = await api.get(`/api/rankings?${params}`);
 
             setRankings(data);
             setError("");
