@@ -75,7 +75,10 @@ export const initialMemoryState = {
     secondCard: null,   // Thẻ thứ hai
     hideTimer: 0,       // Bộ đếm tự động úp thẻ
     timeLeft: GAME_CONFIG.timeLimit,  // Thời gian từ config
-    isTimedOut: false   // Đã hết giờ chưa
+    isTimedOut: false,  // Đã hết giờ chưa
+    hintsRemaining: 1,  // Max 1 Hint
+    hintCards: [],      // Cards to flash for hint
+    hintTimer: 0        // Timer for hint flash
 };
 
 export const updateMemory = (state, button) => {
@@ -120,7 +123,7 @@ export const updateMemory = (state, button) => {
             if (firstColor === secondColor) {
                 // Khớp!
                 const newMatched = [...state.matched, state.firstCard, idx];
-                const newScore = state.score + 10;
+                const newScore = state.score + 40; // Score += 40
                 const gameOver = newMatched.length === TOTAL_CARDS; // Đã ghép hết
 
                 return {
@@ -256,6 +259,14 @@ export const renderMemory = (state, tick) => {
             } else {
                 cardColor = FACE_DOWN_COLOR;
             }
+        }
+        // Ưu tiên 3: Hint (Nhấp nháy thẻ gợi ý)
+        else if (state.hintCards && state.hintCards.includes(i)) {
+             if (Math.floor(tick / 2) % 2 === 0) {
+                 cardColor = state.cards[i]; // Reveal
+             } else {
+                 cardColor = FACE_DOWN_COLOR;
+             }
         }
 
         // Vẽ thẻ (khối cardSize x cardSize)

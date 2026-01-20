@@ -21,9 +21,16 @@ const TILE_COLORS = [
 const getRandomColor = () => TILE_COLORS[Math.floor(Math.random() * TILE_COLORS.length)];
 
 class LineLogic extends GameLogic {
-    constructor(setMatrix, setScore, setStatus, onExit, savedState) {
+    constructor(setMatrix, setScore, setStatus, setTimer, onExit, savedState, gameId) {
         super(setMatrix, setScore, setStatus, onExit);
+        this.setTimer = setTimer;
+        this.gameId = gameId;
         
+        // Initial Game Config
+        this.timeLimit = 120; // Default 120s? User logic "score - 240". Maybe different? 
+        // If I use 120s, and formula is score-240. 
+        // If user didn't specify start time, I'll use 120s.
+
         this.status = {
             board: this.initBoard(),
             cursor: { r: 2, c: 2 },
@@ -36,24 +43,46 @@ class LineLogic extends GameLogic {
                 activeDroppers: [], // Indices of cols? or specific tiles? Simpler: Board-wide gravity step.
                 newSpawns: [] // {c, color} ready to enter at r=-1
             },
+            score: 0,
+            remainingTime: 120, // Default start
+            gameOver: false,
+            hintsRemaining: 3,
+            hintPair: null,
+            hintTimer: 0,
             ...savedState
         };
         
+        // Ensure complex objects are restored if savedState was partial or missing
+        if (!this.status.board) this.status.board = this.initBoard();
+        if (savedState && savedState.hintsRemaining !== undefined) this.status.hintsRemaining = savedState.hintsRemaining;
+        
+        // Restore external UI
+        if (this.setScore) this.setScore(this.status.score);
+        if (this.setTimer && this.status.remainingTime !== undefined) this.setTimer(this.status.remainingTime);
+        
         this.setStatus('LINE');
         this.name = 'LINE';
-        this.status.board = this.status.board || this.initBoard(); // Ensure board exists if savedState was partial
         this.state = this.status;
+        
+        // Tick tracking
+        this.lastSecondTick = null;
     }
 
     getSaveData() {
         return {
             board: this.state.board,
-            score: this.score || 0, // Assuming score is tracked in parent or here? standard GameLogic tracks score via setScore? 
-            // Wait, GameLogic constructor takes setScore. But where is the score value stored? 
-            // Usually in React state passed down. But logic might want to store it to restore it?
-            // RetroConsole keeps it. But we just save 'board'.
-            // User requested check preview/body. I will save board.
-            // And logic state.
+            score: this.state.score,
+            remainingTime: this.state.remainingTime,
+            cursor: this.state.cursor,
+            selected: this.state.selected,
+            mode: this.state.mode,
+            animState: this.state.animState,
+            animData: this.state.animData,
+            animData: this.state.animData,
+            gameOver: this.state.gameOver,
+            hintsRemaining: this.state.hintsRemaining,
+            width: GRID_SIZE,
+            height: GRID_SIZE
         };
     }
 
@@ -111,6 +140,17 @@ class LineLogic extends GameLogic {
             return;
         }
 
+        // Clear Hint on any input
+        if (this.state.hintPair) {
+             this.updateState({ hintPair: null, hintTimer: 0 });
+        }
+
+        // Handle Hint
+        if (action === BUTTONS.HELP && this.state.mode === 'INPUT' && this.state.hintsRemaining > 0) {
+             this.activateHint();
+             return;
+        }
+
         const { cursor } = this.state;
         let nextCursor = { ...cursor };
 
@@ -166,11 +206,56 @@ class LineLogic extends GameLogic {
         this.updateState({
             mode: 'ANIMATING',
             animState: state,
-            animData: { ...this.state.animData, ...data, waitTick: 0, pixelOffset: 0 }
+            animData: { ...this.state.animData, ...data, waitTick: 0, pixelOffset: 0 },
+            hintPair: null, // Clear hint if animation starts (e.g. valid move made)
+            hintTimer: 0
         });
     }
 
+    endGame() {
+        // Final Score Calculation
+        // Formula: score - 240
+        const currentScore = this.state.score || 0;
+        const finalScore = currentScore - 240;
+        
+        this.updateState({ gameOver: true, score: finalScore });
+        if (this.setScore) this.setScore(finalScore);
+        
+        if (this.gameId) {
+             import('./utils/game-service').then(mod => mod.submitScore(this.gameId, finalScore));
+        }
+    }
+
     onTick(tick) {
+        if (this.state.gameOver) {
+            // Render Game Over?
+            const grid = createEmptyGrid();
+            drawSprite(grid, getCharGrid('E'), 5, 2, COLORS.RED);
+            drawSprite(grid, getCharGrid('N'), 5, 7, COLORS.RED);
+            drawSprite(grid, getCharGrid('D'), 5, 12, COLORS.RED);
+            this.setMatrix(grid);
+            this.setStatus(`Final Score: ${this.state.score} | ENTER: Replay`);
+            return;
+        }
+
+        // Timer Logic
+        if (this.lastSecondTick === null) this.lastSecondTick = tick;
+        if (tick - this.lastSecondTick >= 10 && this.state.mode !== 'ANIMATING') { 
+            // Pause timer during animation? User didn't specify. 
+            // Usually match-3 timers keep running.
+            // But let's keep running for pressure.
+            this.lastSecondTick = tick;
+            const newTime = Math.max(0, (this.state.remainingTime || 0) - 1);
+            this.updateState({ remainingTime: newTime });
+            
+            if (this.setTimer) this.setTimer(newTime);
+            
+            if (newTime <= 0) {
+                 this.endGame();
+                 return;
+            }
+        }
+
         const { mode, animState, animData, board } = this.state;
         const grid = createEmptyGrid();
 
@@ -181,6 +266,25 @@ class LineLogic extends GameLogic {
                      animData.matches.forEach(({r, c}) => {
                          if (board[r] && board[r][c]) board[r][c].color = null;
                      });
+                     
+                     // Scoring Logic: (tiles break - 2) * 10
+                     // Count unique tiles broken in this batch?
+                     // matches is array of {r,c}. Duplicates possible if horizontal+vertical intersect?
+                     // findMatches usually returns unique set or list. 
+                     // My findMatches implementation adds duplicates?
+                     // findMatches implementation: push {r,c}. 
+                     // Let's create a Set of IDs "r,c" to count unique broken tiles.
+                     // Let's create a Set of IDs "r,c" to count unique broken tiles.
+                     const uniqueBroken = new Set(animData.matches.map(m => `${m.r},${m.c}`));
+                     const count = uniqueBroken.size;
+                     
+                     if (count > 0) { // Should be > 0
+                         const points = (count - 2) * 10;
+                         const newScore = (this.state.score || 0) + points;
+                         this.updateState({ score: newScore });
+                         if (this.setScore) this.setScore(newScore);
+                     }
+
                      // Wait logic
                      this.updateState({ animData: { ...animData, waitTick: 1 } }); // 1 tick = 100ms
                  } else {
@@ -347,6 +451,111 @@ class LineLogic extends GameLogic {
         return matches;
     }
 
+    // --- HINT & DEADLOCK UTILS ---
+
+    activateHint() {
+        // Find first valid swap
+        const move = this.findValidMove(this.state.board);
+        if (move) {
+            const currentScore = this.state.score || 0;
+            this.updateState({ 
+                // Deduct 10 points for hint
+                score: Math.max(0, currentScore - 10),
+                hintsRemaining: this.state.hintsRemaining - 1,
+                hintPair: move,
+                hintTimer: 20, // 2s (20 ticks)
+                cursor: { r: move[0].r, c: move[0].c } // Move cursor to suggested tile
+            });
+            if (this.setScore) this.setScore(Math.max(0, currentScore - 10));
+        }
+    }
+
+    findValidMove(board) {
+        // Check Horizontal Swaps
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE - 1; c++) {
+                if (this.checkSwap(board, r, c, r, c+1)) return [{r, c}, {r, c: c+1}];
+            }
+        }
+        // Check Vertical Swaps
+        for (let r = 0; r < GRID_SIZE - 1; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                if (this.checkSwap(board, r, c, r+1, c)) return [{r, c}, {r: r+1, c}];
+            }
+        }
+        return null;
+    }
+
+    checkSwap(board, r1, c1, r2, c2) {
+        // Clone board, swap, check matches
+        // Optimization: Don't deep clone entire board, just swap vals and check
+        // But findMatches takes full board.
+        // We can do a shallow clone of rows but deep clone of tile objects?
+        // Let's use JSON parse/stringify for safety for now (5x5 is small)
+        const sim = JSON.parse(JSON.stringify(board));
+        const temp = sim[r1][c1].color;
+        sim[r1][c1].color = sim[r2][c2].color;
+        sim[r2][c2].color = temp;
+        
+        const matches = this.findMatches(sim);
+        return matches.length > 0;
+    }
+
+    hasValidMoves(board) {
+        return !!this.findValidMove(board);
+    }
+    
+    shuffleBoard() {
+        // Keep shuffling until valid moves exist AND no immediate matches
+        let attempts = 0;
+        let valid = false;
+        let newBoard = null;
+        
+        while (!valid && attempts < 100) {
+             attempts++;
+             // Create flat list of colors
+             let colors = [];
+             for(let r=0; r<GRID_SIZE; r++) {
+                 for(let c=0; c<GRID_SIZE; c++) {
+                     if (this.state.board[r][c].color) colors.push(this.state.board[r][c].color);
+                     else colors.push(getRandomColor()); // Filling gaps if any?
+                 }
+             }
+             
+             // Fisher-Yates
+             for (let i = colors.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [colors[i], colors[j]] = [colors[j], colors[i]];
+             }
+             
+             // Rebuild Board
+             newBoard = [];
+             let idx = 0;
+             for(let r=0; r<GRID_SIZE; r++) {
+                 const row = [];
+                 for(let c=0; c<GRID_SIZE; c++) {
+                     row.push({ color: colors[idx++], type: 0 });
+                 }
+                 newBoard.push(row);
+             }
+             
+             // Check: No immediate matches + Has valid moves
+             if (this.findMatches(newBoard).length === 0 && this.hasValidMoves(newBoard)) {
+                 valid = true;
+             }
+        }
+        
+        if (valid) {
+            this.updateState({ board: newBoard });
+            this.setStatus('No Moves! Shuffled Board.');
+            // Maybe animate?
+        } else {
+             // Failed to find good shuffle? Just fallback to Random init?
+             this.updateState({ board: this.initBoard() });
+        }
+    }
+
+
     drawTile(grid, r, c, color, tick, isHovered, isSelected, offsetY = 0) {
         const startY = r * (TILE_SIZE + TILE_GAP) + offsetY;
         const startX = c * (TILE_SIZE + TILE_GAP);
@@ -379,7 +588,21 @@ class LineLogic extends GameLogic {
                  drawCorners(COLORS.WHITE); 
              }
         }
+        
+        // 3. Hint Drawing (Flicker)
+        if (this.state.hintPair) {
+             const isHinted = this.state.hintPair.some(h => h.r === r && h.c === c);
+             if (isHinted && Math.floor(tick / 2) % 2 === 0) {
+                  // Flash White
+                  for(let i=0; i<TILE_SIZE; i++) {
+                     for(let j=0; j<TILE_SIZE; j++) {
+                         safeDraw(startY + i, startX + j, COLORS.WHITE);
+                     }
+                  }
+             }
+        }
     }
+
 
     updateState(updates) {
         this.state = { ...this.state, ...updates };
@@ -413,5 +636,6 @@ class LineLogic extends GameLogic {
         return grid;
     }
 }
+
 
 export default LineLogic;

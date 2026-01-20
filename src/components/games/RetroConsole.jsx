@@ -214,9 +214,11 @@ const RetroConsole = ({ onGameSelect }) => {
     };
 
     const handleSaveGame = async () => {
-        if (pausedGameLogicRef.current) {
+        // Support saving from Pause Menu OR active Paint game
+        const logic = pausedGameLogicRef.current || (activeApp === 'PLAYING' ? gameLogicRef.current : null);
+
+        if (logic) {
             setMessage('SAVING...');
-            const logic = pausedGameLogicRef.current;
             // Pass current timer (from RetroConsole state) to logic if needed
             const gameState = logic.getSaveData ? logic.getSaveData(timer) : null;
             const gameId = logic.name; // Logic should have name matching internalId
@@ -235,13 +237,20 @@ const RetroConsole = ({ onGameSelect }) => {
                     fetchGames().then(d => setGamesData(d));
 
                     setTimeout(() => {
-                        handleResume(); // Auto resume after save
+                        if (pausedGameLogicRef.current) {
+                            handleResume(); // Auto resume after save if paused
+                        } else {
+                            setMessage('PAINT - CLICK TO DRAW'); // Restore paint message
+                        }
                     }, 1000);
                 } catch (e) {
                     setMessage('SAVE FAILED');
                     setTimeout(() => {
-                        // Stay in menu
-                        setMessage('PAUSED');
+                        if (pausedGameLogicRef.current) {
+                            setMessage('PAUSED');
+                        } else {
+                            setMessage('PAINT - CLICK TO DRAW');
+                        }
                     }, 1000);
                 }
             } else {
@@ -299,10 +308,11 @@ const RetroConsole = ({ onGameSelect }) => {
 
         setMessage(`Starting ${item.label}...`);
 
+        const currentGamesData = gamesDataRef.current;
+        const gameInfo = currentGamesData.find(g => g.internalId === gameId);
+
         // Notify Parent
         if (onGameSelect) {
-            const currentGamesData = gamesDataRef.current;
-            const gameInfo = currentGamesData.find(g => g.internalId === gameId);
             // Ensure we pass a game object even if find fails (shouldn't happen if IDs match)
             if (gameInfo) {
                 onGameSelect({ game: gameInfo, isPlaying: true });
@@ -326,18 +336,25 @@ const RetroConsole = ({ onGameSelect }) => {
         console.log(`[RetroConsole] Starting Game: ${gameId}, SavedState:`, savedState);
 
         // Use Factory to create Logic Instance
-        gameLogicRef.current = createGameLogic(
-            gameId,
-            setMatrix,
-            setScore,
-            setMessage,
-            setMessage,
-            () => { // onExit
-                setActiveApp('MENU');
-                refreshMenu();
-            },
-            savedState
-        );
+        console.log(`[RetroConsole] Creating GameLogic for ${gameId}...`);
+        try {
+            gameLogicRef.current = createGameLogic(
+                gameId, // Internal ID usage for switch
+                setMatrix,
+                setScore,
+                setMessage, // status/message
+                setTimer, // Pass setTimer
+                () => { // onExit
+                    setActiveApp('MENU');
+                    refreshMenu();
+                },
+                savedState,
+                gameInfo ? gameInfo.id : null // PASS NUMERIC ID HERE
+            );
+            console.log(`[RetroConsole] GameLogic Created:`, gameLogicRef.current);
+        } catch (e) {
+            console.error(`[RetroConsole] Failed to create logic:`, e);
+        }
 
         setActiveApp('PLAYING');
     };
@@ -351,7 +368,12 @@ const RetroConsole = ({ onGameSelect }) => {
 
         // Unified Delegation to GameLogic
         if (button === BUTTONS.PAUSE) {
-            handlePause();
+            // Per request: Pause in PaintGame acts as Save
+            if (gameLogicRef.current && gameLogicRef.current.name === 'PAINT') {
+                handleSaveGame();
+            } else {
+                handlePause();
+            }
             return;
         }
 
@@ -423,6 +445,7 @@ const RetroConsole = ({ onGameSelect }) => {
     const isPaintGame = activeApp === 'PLAYING' && gameLogicRef.current?.name === 'PAINT';
 
     const formatTime = (seconds) => {
+        if (seconds === null || seconds === undefined) return "--:--";
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -431,7 +454,7 @@ const RetroConsole = ({ onGameSelect }) => {
     return (
         <div className="flex flex-col items-center justify-center p-4 w-full">
             {/* Score & Timer Panel */}
-            {!isPaintGame && activeApp === 'PLAYING' && (
+            {!isPaintGame && (activeApp === 'PLAYING' || activeApp === 'PAUSED') && (
                 <div className="flex justify-between w-[260px] mb-2 font-mono text-xs font-bold text-slate-100">
                     {/* Time Box */}
                     <div className="flex flex-col items-center justify-center w-[110px] px-1 py-1 bg-slate-800 border-2 border-slate-500 rounded-sm shadow-md">
@@ -462,7 +485,8 @@ const RetroConsole = ({ onGameSelect }) => {
             <DotMatrix matrix={matrix} onDotClick={handleDotClick} />
             <ConsoleControls
                 onButtonPress={handleInput}
-                showVertical={true} // Always show controls? Or logic dependent. Logic doesn't control this prop yet.
+                showVertical={true}
+                pauseLabel={isPaintGame ? 'SAVE' : 'PAUSE'}
             />
             <div className="mt-6 text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-4 w-full">
                 {message}

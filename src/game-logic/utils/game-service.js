@@ -92,3 +92,19 @@ export const saveGame = async (gameId, gameState) => {
         throw error;
     }
 };
+
+export const submitScore = async (gameId, score) => {
+    try {
+        console.log(`[GameService] Submitting Score for ${gameId}: ${score}`);
+        const response = await api.post(`/api/games/${gameId}/score`, {
+            score: score
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Failed to submit score", error);
+        // Don't throw, just log, so game flow isn't interrupted?
+        // Or throw to let Logic handle feedback?
+        // Let's return null to indicate failure safely.
+        return null;
+    }
+};

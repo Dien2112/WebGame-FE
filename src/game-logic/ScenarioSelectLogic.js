@@ -39,6 +39,8 @@ class ScenarioSelectLogic extends ConsoleLogic {
         switch (id) {
             case 'CARO_5': return new Caro5Logic(dummySet, dummySet, dummySet, dummySet);
             case 'CARO_4': return new Caro4Logic(dummySet, dummySet, dummySet, dummySet);
+            case 'CARO5': return new Caro5Logic(dummySet, dummySet, dummySet, dummySet);
+            case 'CARO4': return new Caro4Logic(dummySet, dummySet, dummySet, dummySet);
             case 'SNAKE': return new SnakeLogic(dummySet, dummySet, dummySet, dummySet);
             case 'LINE': return new LineLogic(dummySet, dummySet, dummySet, dummySet);
             case 'MEM': return new MemLogic(dummySet, dummySet, dummySet, dummySet);
@@ -142,16 +144,20 @@ class ScenarioSelectLogic extends ConsoleLogic {
 }
 
 // Export the Factory for external use (RetroConsole)
-export const createGameLogic = (id, ...args) => {
-    switch (id) {
-        case 'TICTACTOE': return new TicTacToeLogic(...args);
-        case 'CARO_5': return new Caro5Logic(...args);
-        case 'CARO_4': return new Caro4Logic(...args);
-        case 'SNAKE': return new SnakeLogic(...args);
-        case 'LINE': return new LineLogic(...args);
-        case 'MEM': return new MemLogic(...args);
-        case 'PAINT': return new PaintLogic(...args);
-        default: return new TicTacToeLogic(...args);
+export const createGameLogic = (internalId, matrix, score, status, setTimer, onExit, savedState, gameId) => {
+    // We pass gameId (numeric) as the LAST argument to the logic constructors if they support it.
+    
+    switch (internalId) {
+        case 'TICTACTOE': return new TicTacToeLogic(matrix, score, status, onExit, savedState, gameId);
+        case 'CARO5': return new Caro5Logic(matrix, score, status, setTimer, onExit, savedState, gameId);
+        case 'CARO4': return new Caro4Logic(matrix, score, status, setTimer, onExit, savedState, gameId);
+        case 'CARO_5': return new Caro5Logic(matrix, score, status, setTimer, onExit, savedState, gameId); // Fallback/Legacy
+        case 'CARO_4': return new Caro4Logic(matrix, score, status, setTimer, onExit, savedState, gameId); // Fallback/Legacy
+        case 'SNAKE': return new SnakeLogic(matrix, score, status, setTimer, onExit, savedState, gameId);
+        case 'LINE': return new LineLogic(matrix, score, status, setTimer, onExit, savedState, gameId);
+        case 'MEM': return new MemLogic(matrix, score, status, onExit, savedState, gameId);
+        case 'PAINT': return new PaintLogic(matrix, score, status, onExit, gameId);
+        default: return new TicTacToeLogic(matrix, score, status, onExit, savedState, gameId);
     }
 };
 

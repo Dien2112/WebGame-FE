@@ -44,14 +44,14 @@ const ColorPicker = ({ selectedColorIndex, onColorSelect, onClearAll }) => {
     };
 
     return (
-        <div className="w-full max-w-[320px] mx-auto mb-4 bg-gray-800 rounded-xl p-4">
-            <div className="grid grid-cols-11 gap-3 mb-3">
+        <div className="w-full max-w-[260px] mx-auto mb-2 bg-gray-800 rounded-lg p-2">
+            <div className="grid grid-cols-11 gap-1.5 mb-2">
                 {colorPalette.map((item, index) => (
                     <button
                         key={index}
                         onClick={() => onColorSelect(index)}
                         className={`
-                            w-7 h-7 rounded-full transition-all duration-200 flex items-center justify-center
+                            w-5 h-5 rounded-full transition-all duration-200 flex items-center justify-center
                             ${selectedColorIndex === index
                                 ? 'scale-110'
                                 : 'hover:scale-105'
@@ -90,7 +90,7 @@ const ColorPicker = ({ selectedColorIndex, onColorSelect, onClearAll }) => {
                 <button
                     onClick={handleColorWheelClick}
                     className={`
-                        w-7 h-7 rounded-full transition-all duration-200 flex items-center justify-center relative overflow-hidden
+                        w-5 h-5 rounded-full transition-all duration-200 flex items-center justify-center relative overflow-hidden
                         ${selectedColorIndex === 21
                             ? 'scale-110'
                             : 'hover:scale-105'
@@ -115,7 +115,7 @@ const ColorPicker = ({ selectedColorIndex, onColorSelect, onClearAll }) => {
                 <button
                     onClick={() => onColorSelect(21, customColor)}
                     className={`
-                        w-7 h-7 rounded-full transition-all duration-200
+                        w-5 h-5 rounded-full transition-all duration-200
                         ${selectedColorIndex === 21
                             ? 'scale-110'
                             : 'hover:scale-105'
@@ -131,12 +131,12 @@ const ColorPicker = ({ selectedColorIndex, onColorSelect, onClearAll }) => {
 
             <button
                 onClick={onClearAll}
-                className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-mono text-xs uppercase tracking-wider py-1.5 rounded-md transition-colors duration-200 border border-gray-600"
+                className="w-full bg-gray-700 hover:bg-gray-600 text-gray-200 font-mono text-[10px] uppercase tracking-wider py-1 rounded transition-colors duration-200 border border-gray-600"
             >
                 Clear All
             </button>
 
-            <div className="text-center text-gray-400 text-xs font-mono uppercase tracking-wider mt-2">
+            <div className="text-center text-gray-400 text-[10px] font-mono uppercase tracking-wider mt-1">
                 Colors
             </div>
         </div>

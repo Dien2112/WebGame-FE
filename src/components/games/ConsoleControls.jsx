@@ -2,9 +2,14 @@ import React from 'react';
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, CornerDownLeft, Undo2, HelpCircle, PauseCircle } from 'lucide-react';
 import { BUTTONS } from '@/game-logic/utils/constants';
 
-const ConsoleControls = ({ onButtonPress, showVertical = false }) => {
+const ConsoleControls = ({ onButtonPress, showVertical = false, pauseLabel = 'PAUSE' }) => {
     return (
         <div className="flex flex-col items-center gap-1 mt-1.5 p-1.5 bg-gray-200 rounded-xl shadow-lg border-t-2 border-white/50 border-b-4 border-black/20 w-fit mx-auto min-w-[150px]">
+            {/* ... */}
+            {/* Skipping unchanged parts logic is not supported in replace_file_content nicely for props update unless I replace start block */}
+
+            {/* Wait, I cannot use ... in replacement content. I must provide full replacement. */}
+            {/* I will use multi_replace for safer editing. */}
 
             {/* Directional Controls */}
             <div className="flex justify-center w-full px-1 items-center">
@@ -79,7 +84,7 @@ const ConsoleControls = ({ onButtonPress, showVertical = false }) => {
                 />
                 <ActionButton
                     onClick={() => onButtonPress(BUTTONS.PAUSE)}
-                    label="PAUSE"
+                    label={pauseLabel}
                     icon={<PauseCircle size={12} />}
                     variant="slate" // Pause
                 />

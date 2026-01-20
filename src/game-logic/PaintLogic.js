@@ -152,7 +152,9 @@ class PaintLogic extends GameLogic {
         return {
             canvas: this.state.canvas,
             selectedColorIndex: this.state.selectedColorIndex,
-            customColor: this.state.customColor
+            customColor: this.state.customColor,
+            width: 20,
+            height: 20
         };
     }
 }
