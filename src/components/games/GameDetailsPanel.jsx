@@ -45,6 +45,7 @@ const GameDetailsPanel = ({ game, activeGameId, runtimeStats }) => {
             };
 
             const res = await api.post(`/api/comments/${game.id}`, payload);
+
             if (res) {
                 setNewComment('');
                 fetchComments(game.id);

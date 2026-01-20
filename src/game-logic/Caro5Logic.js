@@ -1,32 +1,16 @@
-import GameLogic from './model/GameLogic';
-import { createEmptyGrid, COLORS } from './utils/constants';
-import { getCharGrid } from './utils/pixel-font';
-import { drawSprite } from './utils/menu';
+import BaseCaroLogic from './BaseCaroLogic';
 
-class Caro5Logic extends GameLogic {
+class Caro5Logic extends BaseCaroLogic {
     constructor(setMatrix, setScore, setStatus, onExit) {
-        super(setMatrix, setScore, setStatus, onExit);
-        this.setStatus('CARO5');
-        this.name = 'CARO5';
-    }
-
-    onConsolePress(action, tick) {
-        if (action === 'BACK') this.onExit();
-    }
-
-    onTick(tick) {
-        const grid = createEmptyGrid();
-        if (Math.floor(tick / 10) % 2 === 0) {
-            drawSprite(grid, getCharGrid('5'), 8, 8, COLORS.RED);
-        }
-        this.setMatrix(grid);
-    }
-
-    preview(saveData, tick) {
-        const grid = createEmptyGrid();
-        drawSprite(grid, getCharGrid('5'), 8, 8, COLORS.YELLOW);
-        return grid;
+        super(15, //Board Size
+            5, 
+            30, // Time per turn in seconds
+            '5', 'CARO5', setMatrix, setScore, setStatus, onExit,
+            15, // Points per win
+            7   // Points per lose
+        );
     }
 }
 
 export default Caro5Logic;
+

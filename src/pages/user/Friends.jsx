@@ -20,6 +20,13 @@ export default function Friends() {
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [error, setError] = useState("");
+    const [useMockData, setUseMockData] = useState(true); // Toggle for mock data
+
+    // Add Friend dropdown states
+    const [showAddFriend, setShowAddFriend] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
+    const [searching, setSearching] = useState(false);
+    const dropdownRef = useRef(null);
 
     // Pagination States
     const [friendsPage, setFriendsPage] = useState(1);

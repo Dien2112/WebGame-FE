@@ -21,10 +21,10 @@ const createSnakeSnapshot = (snakePoints, applePoint) => {
 export const fetchGames = async () => {
     try {
         const games = await api.get('/api/games');
-        // Process data to match FE expectations (render previews)
-        const processedGames = games.map(g => ({
+        console.log("games", games, "game data:" , games.data);
+        const processedGames = (games.data || []).map(g => ({
             ...g,
-            saved_game: g.saved_game.map(s => {
+            saved_game: (g.saved_game || []).map(s => {
                 // Determine if we need to process preview
                 let preview = s.preview;
                 if (g.internalId === 'SNAKE' && preview && preview.snake && preview.apple) {
