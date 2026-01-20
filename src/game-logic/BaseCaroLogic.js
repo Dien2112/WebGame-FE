@@ -21,6 +21,8 @@ class BaseCaroLogic extends GameLogic {
     setScore,
     setStatus,
     onExit,
+    pointsPerWin = 10,
+    pointsPerLose = 5,
   ) {
     super(setMatrix, setScore, setStatus, onExit);
     this.name = gameName;
@@ -36,6 +38,8 @@ class BaseCaroLogic extends GameLogic {
     this.computerMoved = false;
     this.labelChar = labelChar;
     this.computerThinkUntil = null; // Thời gian máy tính suy nghĩ
+    this.pointsPerWin = pointsPerWin;
+    this.pointsPerLose = pointsPerLose;
     this.setStatus(
       youGoFirst ? "You go first (Red)" : "Computer goes first (Red)",
     );
@@ -140,9 +144,11 @@ class BaseCaroLogic extends GameLogic {
     if (this.state.winner) {
       if (this.state.winner === "DRAW") {
         this.setStatus("End game: Draw!");
+        this.calculateScore("DRAW");
       } else {
         const role = this.state.players[this.state.winner];
         this.setStatus(role === "HUMAN" ? "You Win!" : "Computer Wins!");
+        this.calculateScore(role === "HUMAN" ? "WIN" : "LOSE");
       }
     } else {
       const role = this.state.players[this.state.turn];
@@ -152,6 +158,20 @@ class BaseCaroLogic extends GameLogic {
       } else {
         this.setStatus("Computer Thinking...");
       }
+    }
+  }
+
+  calculateScore(result) {
+    let scoreChange = 0;
+    if (result === "WIN") {
+      scoreChange = this.pointsPerWin;
+    } else if (result === "LOSE") {
+      scoreChange = -this.pointsPerLose;
+    }
+    // result === "DRAW" thì scoreChange = 0 (không cộng/trừ điểm)
+    
+    if (scoreChange !== 0) {
+      this.setScore(scoreChange);
     }
   }
 

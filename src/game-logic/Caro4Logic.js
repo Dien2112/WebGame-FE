@@ -5,8 +5,12 @@ class Caro4Logic extends BaseCaroLogic {
         super(10, //Board Size
             4, // Win Length
             30, // Time per turn in seconds
-            '4', 'CARO4', setMatrix, setScore, setStatus, onExit);
+            '4', 'CARO4', setMatrix, setScore, setStatus, onExit,
+            10, // Points per win
+            5   // Points per lose
+        );
     }
 }
 
 export default Caro4Logic;
+
