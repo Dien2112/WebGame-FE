@@ -96,20 +96,37 @@ export default function ProfilePage() {
                 </div>
               </form>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Tên</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.name || 'chu'}</p>
+              <div className="flex gap-6">
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Tên</p>
+                    <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.name || 'chu'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
+                    <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.email || 'user@example.com'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Giới thiệu</p>
+                    <p className="text-[#072D44] dark:text-white">{auth?.user?.bio || 'Chưa có giới thiệu'}</p>
+                  </div>
+                  <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Email</p>
-                  <p className="font-semibold text-[#072D44] dark:text-white">{auth?.user?.email || 'user@example.com'}</p>
+                <div className="flex-shrink-0">
+                  <div className="w-30 h-30 rounded-full overflow-hidden border-4 border-[#5790AB]">
+                    {auth?.user?.avatar ? (
+                      <img 
+                        src={auth.user.avatar} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#5790AB] flex items-center justify-center text-white font-bold text-3xl">
+                        {(auth?.user?.name || auth?.user?.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-[#5790AB] dark:text-[#9CCDDB]">Giới thiệu</p>
-                  <p className="text-[#072D44] dark:text-white">{auth?.user?.bio || 'Chưa có giới thiệu'}</p>
-                </div>
-                <Button onClick={() => setIsEditing(true)}>Chỉnh sửa hồ sơ</Button>
               </div>
             )}
           </CardContent>
