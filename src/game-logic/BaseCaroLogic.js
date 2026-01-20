@@ -145,21 +145,21 @@ class BaseCaroLogic extends GameLogic {
   updateStatus() {
     if (this.state.winner) {
       if (this.state.winner === "DRAW") {
-        this.setStatus(`End game: Draw! | Score: ${this.currentScore}`);
         if (!this.scoreCalculated) {
           this.calculateScore("DRAW");
           this.scoreCalculated = true;
         }
+        this.setStatus(`End game: Draw! | Score: ${this.currentScore}`);
       } else {
         const role = this.state.players[this.state.winner];
-        if (role === "HUMAN") {
-          this.setStatus(`You Win! +${this.pointsPerWin} points | Total: ${this.currentScore + this.pointsPerWin}`);
-        } else {
-          this.setStatus(`Computer Wins! -${this.pointsPerLose} points | Total: ${this.currentScore - this.pointsPerLose}`);
-        }
         if (!this.scoreCalculated) {
           this.calculateScore(role === "HUMAN" ? "WIN" : "LOSE");
           this.scoreCalculated = true;
+        }
+        if (role === "HUMAN") {
+          this.setStatus(`You Win! + ${this.pointsPerWin} points | Total: ${this.currentScore}`);
+        } else {
+          this.setStatus(`Computer Wins! - ${this.pointsPerLose} points | Total: ${this.currentScore}`);
         }
       }
     } else {
