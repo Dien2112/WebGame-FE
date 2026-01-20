@@ -132,166 +132,164 @@ export default function Messages() {
 
   //HANDLERS
   const handleSendMessage = async () => {
-    const handleSendMessage = async () => {
-      if (messageInput.trim() === "" || !selectedConversation) return;
+    if (messageInput.trim() === "" || !selectedConversation) return;
 
-      const tempMessage = {
-        id: Date.now(),
-        sender: "me",
-        text: messageInput,
-        created_at: new Date().toISOString(),
-      };
-
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === selectedId
-            ? {
-              ...conv,
-              messages: [tempMessage, ...conv.messages],
-            }
-            : conv
-        )
-      );
-      setMessageInput("");
-      // Cập nhật lastSyncAt để prevent duplicate khi sync
-      setLastSyncAt(new Date().toISOString());
-      try {
-        await api.post("/api/messages", {
-          userId: selectedId,
-          text: tempMessage.text,
-        });
-      } catch (err) {
-        console.error("Failed to send message:", err);
-      }
+    const tempMessage = {
+      id: Date.now(),
+      sender: "me",
+      text: messageInput,
+      created_at: new Date().toISOString(),
     };
 
-    //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
-    useEffect(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-    }, [selectedConversation?.messages.length]);
-    const orderedMessages = selectedConversation
-      ? [...selectedConversation.messages].reverse()
-      : [];
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === selectedId
+          ? {
+            ...conv,
+            messages: [tempMessage, ...conv.messages],
+          }
+          : conv
+      )
+    );
+    setMessageInput("");
+    // Cập nhật lastSyncAt để prevent duplicate khi sync
+    setLastSyncAt(new Date().toISOString());
+    try {
+      await api.post("/api/messages", {
+        userId: selectedId,
+        text: tempMessage.text,
+      });
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
+  };
 
-    return (
-      <div className="flex h-[calc(100vh-9rem)] bg-background">
-        {/* LEFT: Conversation list */}
-        <div className="w-[320px] border-r flex flex-col">
-          <div className="p-4">
-            <Input
-              placeholder="Search players or teams..."
-              className="rounded-lg"
-              startIcon={<Search className="w-4 h-4" />}
-            />
-          </div>
+  //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedConversation?.messages.length]);
+  const orderedMessages = selectedConversation
+    ? [...selectedConversation.messages].reverse()
+    : [];
 
-          <div className="flex-1 overflow-y-auto space-y-1 px-2">
-            {conversations.map((c) => (
-              <Card
-                key={c.id}
-                onClick={() => setSelectedId(c.id)}
-                className={`p-3 cursor-pointer transition ${c.id === selectedId
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={c.avatar || undefined} />
-                    <AvatarFallback className="bg-muted text-muted-foreground">
-                      {c.name ? c.name[0] : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold text-sm">{c.name}</p>
-                      <span className="text-xs opacity-70">
-                        {/* Time logic if available, else blank */}
-                      </span>
-                    </div>
-                    <p className="text-xs opacity-80 truncate">
-                      {c.messages.length > 0 && (
-                        <>
-                          {c.messages[0]?.sender === "me" &&
-                            "You: "}
-                          {c.messages[0]?.text}
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+  return (
+    <div className="flex h-[calc(100vh-9rem)] bg-background">
+      {/* LEFT: Conversation list */}
+      <div className="w-[320px] border-r flex flex-col">
+        <div className="p-4">
+          <Input
+            placeholder="Search players or teams..."
+            className="rounded-lg"
+            startIcon={<Search className="w-4 h-4" />}
+          />
         </div>
 
-        {/* RIGHT: Chat window */}
-        <div className="flex-1 flex flex-col">
-          {selectedConversation ? (
-            <>
-              {/* Chat header */}
-              <div className="h-16 border-b flex items-center justify-between px-6">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={selectedConversation.avatar || undefined} />
-                    <AvatarFallback>
-                      {selectedConversation.name
-                        ? selectedConversation.name[0]
-                        : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">{selectedConversation.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedConversation.status}
-                    </p>
+        <div className="flex-1 overflow-y-auto space-y-1 px-2">
+          {conversations.map((c) => (
+            <Card
+              key={c.id}
+              onClick={() => setSelectedId(c.id)}
+              className={`p-3 cursor-pointer transition ${c.id === selectedId
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-muted"
+                }`}
+            >
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={c.avatar || undefined} />
+                  <AvatarFallback className="bg-muted text-muted-foreground">
+                    {c.name ? c.name[0] : "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center">
+                    <p className="font-semibold text-sm">{c.name}</p>
+                    <span className="text-xs opacity-70">
+                      {/* Time logic if available, else blank */}
+                    </span>
                   </div>
+                  <p className="text-xs opacity-80 truncate">
+                    {c.messages.length > 0 && (
+                      <>
+                        {c.messages[0]?.sender === "me" &&
+                          "You: "}
+                        {c.messages[0]?.text}
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {orderedMessages.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
-                      }`}
-                  >
-                    <div
-                      className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                        }`}
-                    >
-                      {m.text}
-                    </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-4 border-t flex items-center gap-3">
-                <Input
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type your message..."
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                />
-                <Button size="icon" onClick={handleSendMessage}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Select a conversation to start chatting.
-            </div>
-          )}
+            </Card>
+          ))}
         </div>
       </div>
-    );
-  }
+
+      {/* RIGHT: Chat window */}
+      <div className="flex-1 flex flex-col">
+        {selectedConversation ? (
+          <>
+            {/* Chat header */}
+            <div className="h-16 border-b flex items-center justify-between px-6">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={selectedConversation.avatar || undefined} />
+                  <AvatarFallback>
+                    {selectedConversation.name
+                      ? selectedConversation.name[0]
+                      : "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold">{selectedConversation.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedConversation.status}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {orderedMessages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
+                    }`}
+                >
+                  <div
+                    className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                      }`}
+                  >
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t flex items-center gap-3">
+              <Input
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                placeholder="Type your message..."
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              />
+              <Button size="icon" onClick={handleSendMessage}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            Select a conversation to start chatting.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

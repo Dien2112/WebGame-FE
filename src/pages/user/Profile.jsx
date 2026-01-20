@@ -49,14 +49,12 @@ export default function ProfilePage() {
     e.preventDefault();
 
     try {
-      body = {
+      const body = {
         name: formData.name,
         bio: formData.bio,
         avatar: formData.avatar,
       };
-      const response = await api.put('/api/users/profile', body);
-
-      const data = await response.json();
+      const data = await api.put('/api/users/profile', body);
       if (data.profile) {
         auth?.updateUser(data.profile);
         setProfileData(prev => ({ ...prev, ...data.profile })); // Update local state
