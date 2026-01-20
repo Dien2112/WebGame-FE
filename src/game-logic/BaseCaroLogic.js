@@ -125,8 +125,8 @@ class BaseCaroLogic extends GameLogic {
       const elapsed = now - this.turnStartTime;
       this.remainingTime = Math.max(0, this.turnTimeLimit - elapsed);
 
-      // HẾT GIỜ → COMPUTER THẮNG
-      if (this.remainingTime === 0) {
+      // HẾT GIỜ → COMPUTER THẮNG (chỉ xử lý nếu chưa có winner)
+      if (this.remainingTime === 0 && !this.state.winner) {
         const computerColor =
             this.state.players.Red === "COMPUTER" ? "Red" : "Blue";
         this.state = {
