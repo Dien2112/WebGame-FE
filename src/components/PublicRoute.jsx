@@ -7,7 +7,7 @@ export default function PublicRoute({ children }) {
     if (loading) return <div>Loading...</div>;
 
     if (user || token) {
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/dashboard/games" replace />;
     }
 
     return children;
