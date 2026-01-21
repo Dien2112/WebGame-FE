@@ -15,6 +15,7 @@ export default function Messages() {
   const [messageInput, setMessageInput] = useState("");
   const [lastSyncAt, setLastSyncAt] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
   //REF
   const messagesEndRef = useRef(null);
@@ -24,19 +25,19 @@ export default function Messages() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const data = await api.get("/api/messages");
+        const endpoint = searchQuery 
+          ? `/api/messages?q=${encodeURIComponent(searchQuery)}`
+          : "/api/messages";
+        
+        const data = await api.get(endpoint);
+        const dataArray = Array.isArray(data) ? data : [];
 
-        // Data format check: The API returns:
-        // [ { id (partnerId), name, avatar, status (bool), messages: [{id, content, is_sender, created_at}] } ]
-        // UI expects:
-        // { id, name, avatar, status (string), messages: [ { id, sender: 'me'|'them', text } ] }
-
-        const formatted = data.map((c) => ({
+        const formatted = dataArray.map((c) => ({
           id: c.id,
           name: c.name,
           avatar: c.avatar,
           status: c.status ? "Online" : "Offline", // API returns boolean
-          messages: c.messages.map((m) => ({
+          messages: (c.messages || []).map((m) => ({
             id: m.id,
             sender: m.is_sender ? "me" : "them",
             text: m.content,
@@ -45,16 +46,17 @@ export default function Messages() {
         }));
 
         setConversations(formatted);
-        if (formatted.length > 0) {
+        if (formatted.length > 0 && !selectedId) {
           setSelectedId(formatted[0].id);
-          const allMessages = formatted.flatMap((c) => c.messages);
-
-          if (allMessages.length > 0) {
-            const newest = allMessages.reduce((a, b) =>
-              new Date(a.created_at) > new Date(b.created_at) ? a : b,
-            );
-            setLastSyncAt(newest.created_at);
-          }
+        }
+        
+        // Set lastSyncAt from the newest message across all conversations
+        const allMessages = formatted.flatMap((c) => c.messages);
+        if (allMessages.length > 0) {
+          const newest = allMessages.reduce((a, b) =>
+            new Date(a.created_at) > new Date(b.created_at) ? a : b,
+          );
+          setLastSyncAt(newest.created_at);
         }
       } catch (err) {
         console.error(err);
@@ -62,11 +64,12 @@ export default function Messages() {
     };
 
     fetchMessages();
-  }, [token]);
+  }, [token, searchQuery]);
 
   useEffect(() => {
-    //if (!lastSyncAt) return;
-
+    // Don't sync when searching - only sync in normal message view
+    if (searchQuery) return;
+    
     const interval = setInterval(async () => {
       try {
         const res = await api.get("/api/messages/sync", {
@@ -126,7 +129,7 @@ export default function Messages() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [token.userId]);
+  }, [token.userId, searchQuery, lastSyncAt]);
 
   //EFFECTS: Cập nhật cuộc trò chuyện được chọn
   const selectedConversation = conversations.find((c) => c.id === selectedId);
@@ -153,6 +156,12 @@ export default function Messages() {
       ),
     );
     setMessageInput("");
+    
+    // Clear search when sending a message (to re-enable sync)
+    if (searchQuery) {
+      setSearchQuery("");
+    }
+    
     // Cập nhật lastSyncAt để prevent duplicate khi sync
     setLastSyncAt(new Date().toISOString());
     try {
@@ -198,6 +207,8 @@ export default function Messages() {
             placeholder="Search players or teams..."
             className="rounded-lg"
             startIcon={<Search className="w-4 h-4" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
@@ -226,11 +237,13 @@ export default function Messages() {
                     </span>
                   </div>
                   <p className="text-xs opacity-80 truncate">
-                    {c.messages.length > 0 && (
+                    {c.messages.length > 0 ? (
                       <>
                         {c.messages[0]?.sender === "me" && "You: "}
                         {c.messages[0]?.text}
                       </>
+                    ) : (
+                      <span className="italic">No messages yet</span>
                     )}
                   </p>
                 </div>
@@ -291,22 +304,28 @@ export default function Messages() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {orderedMessages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
-                    }`}
-                >
+              {orderedMessages.length > 0 ? (
+                orderedMessages.map((m) => (
                   <div
-                    className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                    key={m.id}
+                    className={`flex ${m.sender === "me" ? "justify-end" : "justify-start"
                       }`}
                   >
-                    {m.text}
+                    <div
+                      className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                        }`}
+                    >
+                      {m.text}
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No messages yet. Start a conversation!
                 </div>
-              ))}
+              )}
               <div ref={messagesEndRef} />
             </div>
 
