@@ -7,12 +7,17 @@ import { drawSprite } from './utils/menu';
 const TOTAL_CARDS = GAME_CONFIG.rows * GAME_CONFIG.cols;
 
 class MemLogic extends GameLogic {
-    constructor(setMatrix, setScore, setStatus, onExit, savedState, gameId) {
+    constructor(setMatrix, setScore, setStatus, onExit, savedState, gameId, config = {}) {
         super(setMatrix, setScore, setStatus, onExit);
+        
+        this.config = {
+            timeLimit: config.timeLimit || config.time || 120 // Default 120s
+        };
 
         // Khởi tạo state từ dữ liệu đã lưu hoặc state mặc định
         this.state = {
             ...initialMemoryState,
+            timeLeft: savedState ? (savedState.timeLeft || this.config.timeLimit) : this.config.timeLimit,
             ...(savedState || {})
         };
         // Restore hints

@@ -4,7 +4,7 @@ import { createEmptyGrid, COLORS, BUTTONS } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
 
-const GRID_SIZE = 5;
+const DEFAULT_GRID_SIZE = 5;
 const TILE_SIZE = 3;
 const TILE_GAP = 1;
 
@@ -21,10 +21,12 @@ const TILE_COLORS = [
 const getRandomColor = () => TILE_COLORS[Math.floor(Math.random() * TILE_COLORS.length)];
 
 class LineLogic extends GameLogic {
-    constructor(setMatrix, setScore, setStatus, setTimer, onExit, savedState, gameId) {
+    constructor(setMatrix, setScore, setStatus, setTimer, onExit, savedState, gameId, config = {}) {
         super(setMatrix, setScore, setStatus, onExit);
         this.setTimer = setTimer;
         this.gameId = gameId;
+        this.config = config;
+        this.gridSize = config.size || DEFAULT_GRID_SIZE;
         
         // Initial Game Config
         this.timeLimit = 120; // Default 120s? User logic "score - 240". Maybe different? 
@@ -81,17 +83,17 @@ class LineLogic extends GameLogic {
             animData: this.state.animData,
             gameOver: this.state.gameOver,
             hintsRemaining: this.state.hintsRemaining,
-            width: GRID_SIZE,
-            height: GRID_SIZE
+            width: this.gridSize,
+            height: this.gridSize
         };
     }
 
     // ... initBoard same ...
     initBoard() {
         const board = [];
-        for (let r = 0; r < GRID_SIZE; r++) {
+        for (let r = 0; r < this.gridSize; r++) {
             const row = [];
-            for (let c = 0; c < GRID_SIZE; c++) {
+            for (let c = 0; c < this.gridSize; c++) {
                 let color;
                 do {
                     color = getRandomColor();
@@ -123,7 +125,7 @@ class LineLogic extends GameLogic {
         const gridC = Math.floor(c / pitch);
 
         // Bounds check
-        if (gridR < 0 || gridR >= GRID_SIZE || gridC < 0 || gridC >= GRID_SIZE) return;
+        if (gridR < 0 || gridR >= this.gridSize || gridC < 0 || gridC >= this.gridSize) return;
 
         // Update Cursor
         this.updateState({ cursor: { r: gridR, c: gridC } });
@@ -155,9 +157,9 @@ class LineLogic extends GameLogic {
         let nextCursor = { ...cursor };
 
         if (action === BUTTONS.UP) nextCursor.r = Math.max(0, cursor.r - 1);
-        if (action === BUTTONS.DOWN) nextCursor.r = Math.min(GRID_SIZE - 1, cursor.r + 1);
+        if (action === BUTTONS.DOWN) nextCursor.r = Math.min(this.gridSize - 1, cursor.r + 1);
         if (action === BUTTONS.LEFT) nextCursor.c = Math.max(0, cursor.c - 1);
-        if (action === BUTTONS.RIGHT) nextCursor.c = Math.min(GRID_SIZE - 1, cursor.c + 1);
+        if (action === BUTTONS.RIGHT) nextCursor.c = Math.min(this.gridSize - 1, cursor.c + 1);
 
         if (action === BUTTONS.ENTER) {
             this.handleEnter();
@@ -297,11 +299,11 @@ class LineLogic extends GameLogic {
                  const newSpawns = []; // List of {c, color}
 
                  // Track falling status map for chaining
-                 const isFalling = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(false));
+                 const isFalling = Array(this.gridSize).fill(null).map(() => Array(this.gridSize).fill(false));
 
-                 for (let c = 0; c < GRID_SIZE; c++) {
+                 for (let c = 0; c < this.gridSize; c++) {
                      // 1. Identify Droppers (Bottom-Up)
-                     for (let r = GRID_SIZE - 2; r >= 0; r--) { // Start from second last row
+                     for (let r = this.gridSize - 2; r >= 0; r--) { // Start from second last row
                          const current = board[r][c];
                          const below = board[r+1][c];
                          
@@ -386,8 +388,8 @@ class LineLogic extends GameLogic {
         }
 
         // Draw Board Tiles
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
+        for (let r = 0; r < this.gridSize; r++) {
+            for (let c = 0; c < this.gridSize; c++) {
                 const cell = board[r][c];
                 if (cell.color) {
                     const isMoving = movingCells.has(`${r},${c}`);
@@ -421,13 +423,13 @@ class LineLogic extends GameLogic {
     findMatches(board) {
         const matches = [];
         // Horizontal
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE - 2; c++) {
+        for (let r = 0; r < this.gridSize; r++) {
+            for (let c = 0; c < this.gridSize - 2; c++) {
                 const color = board[r][c].color;
                 if (color && color === board[r][c+1].color && color === board[r][c+2].color) {
                     matches.push({r, c}, {r, c: c+1}, {r, c: c+2});
                     let k = c + 3;
-                    while(k < GRID_SIZE && board[r][k].color === color) {
+                    while(k < this.gridSize && board[r][k].color === color) {
                         matches.push({r, c: k});
                         k++;
                     }
@@ -435,13 +437,13 @@ class LineLogic extends GameLogic {
             }
         }
         // Vertical
-        for (let c = 0; c < GRID_SIZE; c++) {
-            for (let r = 0; r < GRID_SIZE - 2; r++) {
+        for (let c = 0; c < this.gridSize; c++) {
+            for (let r = 0; r < this.gridSize - 2; r++) {
                 const color = board[r][c].color;
                 if (color && color === board[r+1][c].color && color === board[r+2][c].color) {
                      matches.push({r, c}, {r: r+1, c}, {r: r+2, c});
                      let k = r + 3;
-                     while(k < GRID_SIZE && board[k][c].color === color) {
+                     while(k < this.gridSize && board[k][c].color === color) {
                          matches.push({r: k, c});
                          k++;
                      }
@@ -472,14 +474,14 @@ class LineLogic extends GameLogic {
 
     findValidMove(board) {
         // Check Horizontal Swaps
-        for (let r = 0; r < GRID_SIZE; r++) {
-            for (let c = 0; c < GRID_SIZE - 1; c++) {
+        for (let r = 0; r < this.gridSize; r++) {
+            for (let c = 0; c < this.gridSize - 1; c++) {
                 if (this.checkSwap(board, r, c, r, c+1)) return [{r, c}, {r, c: c+1}];
             }
         }
         // Check Vertical Swaps
-        for (let r = 0; r < GRID_SIZE - 1; r++) {
-            for (let c = 0; c < GRID_SIZE; c++) {
+        for (let r = 0; r < this.gridSize - 1; r++) {
+            for (let c = 0; c < this.gridSize; c++) {
                 if (this.checkSwap(board, r, c, r+1, c)) return [{r, c}, {r: r+1, c}];
             }
         }
@@ -515,8 +517,8 @@ class LineLogic extends GameLogic {
              attempts++;
              // Create flat list of colors
              let colors = [];
-             for(let r=0; r<GRID_SIZE; r++) {
-                 for(let c=0; c<GRID_SIZE; c++) {
+             for(let r=0; r<this.gridSize; r++) {
+                 for(let c=0; c<this.gridSize; c++) {
                      if (this.state.board[r][c].color) colors.push(this.state.board[r][c].color);
                      else colors.push(getRandomColor()); // Filling gaps if any?
                  }
@@ -531,9 +533,9 @@ class LineLogic extends GameLogic {
              // Rebuild Board
              newBoard = [];
              let idx = 0;
-             for(let r=0; r<GRID_SIZE; r++) {
+             for(let r=0; r<this.gridSize; r++) {
                  const row = [];
-                 for(let c=0; c<GRID_SIZE; c++) {
+                 for(let c=0; c<this.gridSize; c++) {
                      row.push({ color: colors[idx++], type: 0 });
                  }
                  newBoard.push(row);

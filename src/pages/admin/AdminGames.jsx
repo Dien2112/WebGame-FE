@@ -1,177 +1,285 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useGameConfig } from "@/context/GameConfigContext";
+import { Loader2, Settings, X } from "lucide-react";
 
 export default function AdminGames() {
-    const { games, toggleGame, updateBoardSize, resetToDefault } = useGameConfig();
-    const [editingGame, setEditingGame] = useState(null);
-    const [tempSize, setTempSize] = useState({ width: 0, height: 0 });
+    const [games, setGames] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedGame, setSelectedGame] = useState(null);
+    const [configForm, setConfigForm] = useState({});
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-    const startEditing = (game) => {
-        setEditingGame(game.id);
-        setTempSize({ ...game.boardSize });
+    useEffect(() => {
+        fetchGames();
+    }, []);
+
+    const fetchGames = async () => {
+        try {
+            const res = await api.get('/api/games');
+            const list = res.data || res;
+            setGames(list);
+            setLoading(false);
+        } catch (error) {
+            console.error("Failed to fetch games", error);
+            setLoading(false);
+        }
     };
 
-    const cancelEditing = () => {
-        setEditingGame(null);
-        setTempSize({ width: 0, height: 0 });
+    const handleToggleStatus = async (game) => {
+        try {
+            await api.post(`/api/games/${game.id}/status`);
+            setGames(games.map(g => g.id === game.id ? { ...g, is_active: !g.is_active } : g));
+        } catch (error) {
+            console.error("Failed to toggle status", error);
+        }
     };
 
-    const saveSize = (gameId) => {
-        const game = games.find(g => g.id === gameId);
+    const openConfig = (game) => {
+        setSelectedGame(game);
+        setConfigForm(game.config || {});
+        setDialogOpen(true);
+    };
 
-        // Validate size
-        if (tempSize.width < game.minSize.width || tempSize.width > game.maxSize.width ||
-            tempSize.height < game.minSize.height || tempSize.height > game.maxSize.height) {
-            alert(`Size must be between ${game.minSize.width}x${game.minSize.height} and ${game.maxSize.width}x${game.maxSize.height}`);
+    const validateConfig = (game, config) => {
+        const code = game.internal_id || game.type;
+        const size = parseInt(config.size);
+        const speed = config.speed ? parseInt(config.speed) : undefined;
+        const time = config.time ? parseInt(config.time) : undefined;
+
+        if (code === 'SNAKE') {
+            if (size < 10 || size > 20) return "Snake size must be between 10 and 20.";
+            if (speed && (speed < 1 || speed > 8)) return "Speed must be between 1 and 8.";
+        }
+
+        if (code === 'CARO4') {
+            if (size < 5 || size > 20) return "Caro (4x4) size must be between 5 and 20.";
+        }
+
+        if (code === 'CARO5') {
+            if (size < 7 || size > 20) return "Caro (5x5) size must be between 7 and 20.";
+        }
+
+        if (code === 'MEM') {
+            if (size < 2 || size > 4) return "Memory size must be between 2 and 4 (e.g., 2x2, 4x4).";
+            if ((size * size) % 2 !== 0) return "Memory game must have an even number of tiles (size x size must be even).";
+            if (time && (time < 30 || time > 120)) return "Time limit must be between 30 and 120 seconds.";
+        }
+
+        if (code === 'LINE') {
+            if (size < 4 || size > 5) return "Line size must be between 4 and 5.";
+            // Line Logic might expect even number total if it's based on some pair logic, 
+            // but user explicitly asked "Line size is 4 ~ 5". 
+            // 5x5 = 25 (odd), so "must be even" check might be wrong for Line if 5 is valid.
+            // Removing the even check for Line unless confirmed.
+            if (time && (time < 30 || time > 120)) return "Time limit must be between 30 and 120 seconds.";
+        }
+
+        return null; // Valid
+    };
+
+    const handleSaveConfig = async () => {
+        if (!selectedGame) return;
+
+        const error = validateConfig(selectedGame, configForm);
+        if (error) {
+            alert(error);
             return;
         }
 
-        // Special validation for memory game (must have even total cards)
-        if (gameId === "memory" && (tempSize.width * tempSize.height) % 2 !== 0) {
-            alert("Memory game must have an even number of total cards");
-            return;
+        try {
+            await api.post(`/api/games/${selectedGame.id}/config`, { config: configForm });
+            setDialogOpen(false);
+            fetchGames();
+        } catch (error) {
+            console.error("Failed to save config", error);
+            alert("Failed to save configuration");
         }
-
-        updateBoardSize(gameId, { ...tempSize });
-        setEditingGame(null);
     };
 
-    return (
-        <div>
-            <h3 className="text-2xl font-bold mb-2">Game Management</h3>
-            <p className="text-muted-foreground mb-6">Enable/disable games and configure board sizes</p>
+    const renderConfigInputs = () => {
+        if (!selectedGame) return null;
+        const code = selectedGame.internal_id || selectedGame.type;
 
-            <div className="grid gap-4">
-                {games.map((game) => (
-                    <div
-                        key={game.id}
-                        className={`p-4 border rounded-lg transition-all ${
-                            game.enabled
-                                ? "bg-card border-border"
-                                : "bg-muted/50 border-muted opacity-60"
-                        }`}
-                    >
-                        <div className="flex items-start justify-between">
-                            {/* Game Info */}
-                            <div className="flex items-center gap-3">
-                                <span className="text-3xl">{game.icon}</span>
-                                <div>
-                                    <h4 className="font-semibold text-lg flex items-center gap-2">
-                                        {game.name}
-                                        {!game.enabled && (
-                                            <span className="text-xs bg-destructive/20 text-destructive px-2 py-0.5 rounded">
-                                                Disabled
-                                            </span>
-                                        )}
-                                    </h4>
-                                    <p className="text-sm text-muted-foreground">{game.description}</p>
-                                </div>
-                            </div>
-
-                            {/* Enable/Disable Toggle */}
-                            <Button
-                                variant={game.enabled ? "destructive" : "default"}
-                                size="sm"
-                                onClick={() => toggleGame(game.id)}
-                            >
-                                {game.enabled ? "Disable" : "Enable"}
-                            </Button>
-                        </div>
-
-                        {/* Board Size Configuration */}
-                        <div className="mt-4 pt-4 border-t">
-                            {game.hasBoardSize ? (
-                                <div className="flex items-center gap-4">
-                                    <Label className="text-sm font-medium min-w-[80px]">Board Size:</Label>
-
-                                    {editingGame === game.id ? (
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                type="number"
-                                                value={tempSize.width}
-                                                onChange={(e) => setTempSize({ ...tempSize, width: parseInt(e.target.value) || 0 })}
-                                                className="w-20 h-8"
-                                                min={game.minSize.width}
-                                                max={game.maxSize.width}
-                                            />
-                                            <span className="text-muted-foreground">×</span>
-                                            <Input
-                                                type="number"
-                                                value={tempSize.height}
-                                                onChange={(e) => setTempSize({ ...tempSize, height: parseInt(e.target.value) || 0 })}
-                                                className="w-20 h-8"
-                                                min={game.minSize.height}
-                                                max={game.maxSize.height}
-                                            />
-                                            <Button size="sm" variant="outline" onClick={() => saveSize(game.id)}>
-                                                Save
-                                            </Button>
-                                            <Button size="sm" variant="ghost" onClick={cancelEditing}>
-                                                Cancel
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono bg-muted px-2 py-1 rounded text-sm">
-                                                {game.boardSize.width} × {game.boardSize.height}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">
-                                                (min: {game.minSize.width}×{game.minSize.height}, max: {game.maxSize.width}×{game.maxSize.height})
-                                            </span>
-                                            <Button size="sm" variant="ghost" onClick={() => startEditing(game)}>
-                                                Edit
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {game.note && (
-                                        <span className="text-xs text-amber-600 dark:text-amber-400">
-                                            ⚠️ {game.note}
-                                        </span>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-4">
-                                    <Label className="text-sm font-medium min-w-[80px]">Board Size:</Label>
-                                    <span className="text-sm text-muted-foreground italic">
-                                        {game.id === "tictactoe"
-                                            ? "Fixed 3×3 (cannot be changed)"
-                                            : "Not applicable for this game"
-                                        }
-                                    </span>
-                                </div>
-                            )}
+        if (code === 'SNAKE') {
+            return (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Board Size (10 - 20)</Label>
+                        <Input
+                            type="number"
+                            min={10} max={20}
+                            value={configForm.size || 20}
+                            onChange={e => setConfigForm({ ...configForm, size: parseInt(e.target.value) })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Speed (1-8)</Label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="range"
+                                min={1} max={8} step={1}
+                                value={configForm.speed || 4}
+                                onChange={(e) => setConfigForm({ ...configForm, speed: parseInt(e.target.value) })}
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                            />
+                            <span className="w-8 text-center font-bold">{configForm.speed || 4}</span>
                         </div>
                     </div>
+                </div>
+            );
+        }
+
+        if (code === 'CARO4' || code === 'CARO5') {
+            const min = code === 'CARO4' ? 5 : 7;
+            return (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Board Size ({min} - 20)</Label>
+                        <Input
+                            type="number"
+                            min={min} max={20}
+                            value={configForm.size || 15}
+                            onChange={e => setConfigForm({ ...configForm, size: parseInt(e.target.value) })}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        if (code === 'MEM') {
+            const minSize = 2;
+            const maxSize = 4;
+
+            return (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Board Size ({minSize} - {maxSize}, Even Total Tiles)</Label>
+                        <Input
+                            type="number"
+                            min={minSize} max={maxSize}
+                            value={configForm.size || 4}
+                            onChange={e => setConfigForm({ ...configForm, size: parseInt(e.target.value) })}
+                        />
+                        <p className="text-xs text-muted-foreground">Example: 4x4=16 (Even). 3x3=9 (Odd - Invalid).</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Time Limit (30 - 120s)</Label>
+                        <Input
+                            type="number"
+                            min={30} max={120}
+                            value={configForm.time || 60}
+                            onChange={e => setConfigForm({ ...configForm, time: parseInt(e.target.value) })}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        if (code === 'LINE') {
+            const minSize = 4;
+            const maxSize = 5;
+
+            return (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Board Size ({minSize} - {maxSize})</Label>
+                        <Input
+                            type="number"
+                            min={minSize} max={maxSize}
+                            value={configForm.size || 5}
+                            onChange={e => setConfigForm({ ...configForm, size: parseInt(e.target.value) })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Time Limit (30 - 120s)</Label>
+                        <Input
+                            type="number"
+                            min={30} max={120}
+                            value={configForm.time || 60}
+                            onChange={e => setConfigForm({ ...configForm, time: parseInt(e.target.value) })}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        return <div className="text-muted-foreground italic">No configuration available for this game.</div>;
+    };
+
+    if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+
+    return (
+        <div className="space-y-6 relative">
+            <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold">Game Management</h3>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {games.map(game => (
+                    <Card key={game.id} className={!game.is_active ? 'opacity-75 bg-muted/50' : ''}>
+                        <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                                <CardTitle>{game.name}</CardTitle>
+                                <div className="flex items-center space-x-2">
+                                    <Label htmlFor={`switch-${game.id}`} className="text-xs font-normal text-muted-foreground">
+                                        {game.is_active ? 'On' : 'Off'}
+                                    </Label>
+                                    <input
+                                        id={`switch-${game.id}`}
+                                        type="checkbox"
+                                        checked={game.is_active}
+                                        onChange={() => handleToggleStatus(game)}
+                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                            <CardDescription>ID: {game.internal_id || game.type}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex justify-between items-center mt-4">
+                                <div className="text-sm text-muted-foreground">
+                                    {game.is_active ? 'Active' : 'Disabled'}
+                                </div>
+                                <Button variant="outline" size="sm" onClick={() => openConfig(game)}>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Configure
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
 
-            {/* Summary */}
-            <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h4 className="font-semibold mb-2">Summary</h4>
-                        <div className="flex gap-6 text-sm">
-                            <span>
-                                <span className="font-medium text-green-600 dark:text-green-400">
-                                    {games.filter(g => g.enabled).length}
-                                </span> games enabled
-                            </span>
-                            <span>
-                                <span className="font-medium text-red-600 dark:text-red-400">
-                                    {games.filter(g => !g.enabled).length}
-                                </span> games disabled
-                            </span>
+            {/* Custom Modal */}
+            {dialogOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-background border rounded-lg shadow-lg w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="space-y-1">
+                                <h4 className="text-lg font-semibold leading-none tracking-tight">Configure {selectedGame?.name}</h4>
+                                <p className="text-sm text-muted-foreground">Update settings for this game.</p>
+                            </div>
+                            <button onClick={() => setDialogOpen(false)} className="text-muted-foreground hover:text-foreground">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="py-4">
+                            {renderConfigInputs()}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handleSaveConfig}>Save Changes</Button>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={resetToDefault}>
-                        Reset to Default
-                    </Button>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

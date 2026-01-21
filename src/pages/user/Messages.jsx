@@ -1,4 +1,4 @@
-import { Search, Send } from "lucide-react";
+import { Search, Send, ChevronLeft, ChevronRight, } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
 
-
 export default function Messages() {
   //STATE
   const { token } = useAuth();
@@ -15,9 +14,11 @@ export default function Messages() {
   const [selectedId, setSelectedId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const [lastSyncAt, setLastSyncAt] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   //REF
   const messagesEndRef = useRef(null);
+  const PAGE_SIZE = 6;
 
   //EFFECTS: Fetch data from API
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function Messages() {
 
           if (allMessages.length > 0) {
             const newest = allMessages.reduce((a, b) =>
-              new Date(a.created_at) > new Date(b.created_at) ? a : b
+              new Date(a.created_at) > new Date(b.created_at) ? a : b,
             );
             setLastSyncAt(newest.created_at);
           }
@@ -148,8 +149,8 @@ export default function Messages() {
             ...conv,
             messages: [tempMessage, ...conv.messages],
           }
-          : conv
-      )
+          : conv,
+      ),
     );
     setMessageInput("");
     // Cập nhật lastSyncAt để prevent duplicate khi sync
@@ -174,6 +175,20 @@ export default function Messages() {
     ? [...selectedConversation.messages].reverse()
     : [];
 
+  const totalPages = Math.ceil(conversations.length / PAGE_SIZE);
+  const paginatedConv = conversations.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  useEffect(() => {
+    const newTotalPages = Math.ceil(conversations.length / PAGE_SIZE) || 1;
+
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages);
+    }
+  }, [conversations.length]);
+
+
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
       {/* LEFT: Conversation list */}
@@ -187,13 +202,13 @@ export default function Messages() {
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1 px-2">
-          {conversations.map((c) => (
+          {paginatedConv.map((c) => (
             <Card
               key={c.id}
               onClick={() => setSelectedId(c.id)}
               className={`p-3 cursor-pointer transition ${c.id === selectedId
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted"
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -213,8 +228,7 @@ export default function Messages() {
                   <p className="text-xs opacity-80 truncate">
                     {c.messages.length > 0 && (
                       <>
-                        {c.messages[0]?.sender === "me" &&
-                          "You: "}
+                        {c.messages[0]?.sender === "me" && "You: "}
                         {c.messages[0]?.text}
                       </>
                     )}
@@ -223,6 +237,31 @@ export default function Messages() {
               </div>
             </Card>
           ))}
+        </div>
+        <div className="h-12 border-t flex items-center justify-between px-4 text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Prev
+          </Button>
+
+          <span className="opacity-70">
+            {currentPage} / {totalPages || 1}
+          </span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
         </div>
       </div>
 
@@ -260,8 +299,8 @@ export default function Messages() {
                 >
                   <div
                     className={`max-w-[60%] rounded-2xl px-4 py-2 text-sm ${m.sender === "me"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
                       }`}
                   >
                     {m.text}

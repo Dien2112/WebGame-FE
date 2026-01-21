@@ -24,14 +24,13 @@ class SnakeLogic extends GameLogic {
         this.setTimer = setTimer;
         this.gameId = gameId;
         this.config = {
-            snakeSpeed: config.snakeSpeed || 4, // 1-8, default 4
+            snakeSpeed: config.snakeSpeed || config.speed || 4, // 1-8, default 4
             timeLimit: config.timeLimit || 60,  // seconds
-            appleCoefficient: config.appleCoefficient || 10
+            appleCoefficient: config.appleCoefficient || 10,
+            size: config.size || GRID_SIZE // Default to full 20x20 if not set
         };
         
-        // Calculate move interval based on speed (level 4 = 250ms)
-        // Formula: interval = 1000 / speed
-        this.moveInterval = Math.floor(1000 / this.config.snakeSpeed);
+        this.gridSize = parseInt(this.config.size);
         
         // Initialize game state
         this.initGame(savedState);
@@ -70,10 +69,12 @@ class SnakeLogic extends GameLogic {
         }
         
         // Tick is called every 100ms (10 ticks per second)
-        // snakeSpeed 1-8: higher = faster
-        // Speed 4 = 0.25s = 250ms = 2.5 ticks per move
-        // Formula: ticksPerMove = 10 / snakeSpeed (rounded)
-        this.ticksPerMove = Math.max(1, Math.round(10 / this.config.snakeSpeed));
+        // Speed calculation: 0.125 * (9 - speed) seconds
+        // Converted to ms: 125 * (9 - speed)
+        // Converted to ticks (100ms): 1.25 * (9 - speed)
+        const speed = this.config.snakeSpeed;
+        const intervalMs = 125 * (9 - speed);
+        this.ticksPerMove = Math.max(1, Math.round(intervalMs / 100));
         this.lastMoveTick = null; // Will be set on first tick
         this.lastSecondTick = null; // Will be set on first tick
         this.lastMoveTick = null; // Will be set on first tick
@@ -93,8 +94,8 @@ class SnakeLogic extends GameLogic {
      * Create initial snake at center of grid
      */
     createInitialSnake() {
-        const centerY = Math.floor(GRID_SIZE / 2);
-        const centerX = Math.floor(GRID_SIZE / 2) - 2;
+        const centerY = Math.floor(this.gridSize / 2);
+        const centerX = Math.floor(this.gridSize / 2) - 2;
         return [
             { x: centerX + 2, y: centerY }, // Head
             { x: centerX + 1, y: centerY },
@@ -104,7 +105,7 @@ class SnakeLogic extends GameLogic {
 
     /**
      * Spawn apple at random position not occupied by snake
-     * Apple spawns in playable area (1 to GRID_SIZE-2), avoiding timer bar at row 1
+     * Apple spawns in playable area (1 to this.gridSize-2)
      */
     spawnApple() {
         let apple;
@@ -113,8 +114,8 @@ class SnakeLogic extends GameLogic {
         
         do {
             apple = {
-                x: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2, // 2 to GRID_SIZE-3
-                y: Math.floor(Math.random() * (GRID_SIZE - 4)) + 2  // 2 to GRID_SIZE-3 (avoid timer bar)
+                x: Math.floor(Math.random() * (this.gridSize - 4)) + 2, // 2 to SIZE-3
+                y: Math.floor(Math.random() * (this.gridSize - 4)) + 2  // 2 to SIZE-3
             };
             attempts++;
         } while (this.isOccupiedBySnake(apple.x, apple.y) && attempts < maxAttempts);
@@ -235,9 +236,9 @@ class SnakeLogic extends GameLogic {
                 break;
         }
 
-        // Check collision with walls (border is at 0 and GRID_SIZE-1)
-        // Snake can only move in area 1 to GRID_SIZE-2
-        if (head.x <= 0 || head.x >= GRID_SIZE - 1 || head.y <= 0 || head.y >= GRID_SIZE - 1) {
+        // Check collision with walls (border is at 0 and this.gridSize-1)
+        // Snake can only move in area 1 to this.gridSize-2
+        if (head.x <= 0 || head.x >= this.gridSize - 1 || head.y <= 0 || head.y >= this.gridSize - 1) {
             this.endGame(false); // Lose
             return;
         }
@@ -301,16 +302,17 @@ class SnakeLogic extends GameLogic {
      * Render the game grid
      */
     render(tick) {
-        const grid = createEmptyGrid();
+        const grid = createEmptyGrid(); // Always 20x20
 
         // Draw border
-        // Draw border
         // Requirements: "Change border color into another color" -> let's use CYAN
-        for (let i = 0; i < GRID_SIZE; i++) {
-            grid[0][i] = COLORS.CYAN;
-            grid[GRID_SIZE - 1][i] = COLORS.CYAN;
-            grid[i][0] = COLORS.CYAN;
-            grid[i][GRID_SIZE - 1] = COLORS.CYAN;
+        for (let i = 0; i < this.gridSize; i++) {
+            if (i < GRID_SIZE) { // Ensure within bounds
+                grid[0][i] = COLORS.CYAN;
+                grid[this.gridSize - 1][i] = COLORS.CYAN;
+                grid[i][0] = COLORS.CYAN;
+                grid[i][this.gridSize - 1] = COLORS.CYAN;
+            }
         }
 
         // Game over screen
@@ -333,16 +335,16 @@ class SnakeLogic extends GameLogic {
 
         // Draw apple (blinking effect)
         if (this.apple && Math.floor(tick / 5) % 2 === 0) {
-            if (this.apple.y >= 0 && this.apple.y < GRID_SIZE && 
-                this.apple.x >= 0 && this.apple.x < GRID_SIZE) {
+            if (this.apple.y >= 0 && this.apple.y < this.gridSize && 
+                this.apple.x >= 0 && this.apple.x < this.gridSize) {
                 grid[this.apple.y][this.apple.x] = COLORS.RED;
             }
         }
 
         // Draw snake
         this.snake.forEach((segment, index) => {
-            if (segment.y >= 0 && segment.y < GRID_SIZE && 
-                segment.x >= 0 && segment.x < GRID_SIZE) {
+            if (segment.y >= 0 && segment.y < this.gridSize && 
+                segment.x >= 0 && segment.x < this.gridSize) {
                 if (index === 0) {
                     // Head - darker color
                     grid[segment.y][segment.x] = COLORS.BLACK;
@@ -352,16 +354,6 @@ class SnakeLogic extends GameLogic {
                 }
             }
         });
-
-        // Draw timer bar at top (inside border) -> DELETED "Delete the yellow line in Snake Game"
-        /*
-        const timerWidth = Math.floor((this.remainingTime / this.config.timeLimit) * (GRID_SIZE - 4));
-        for (let i = 0; i < timerWidth; i++) {
-            if (i + 2 < GRID_SIZE - 1) {
-                grid[1][i + 2] = this.remainingTime <= 10 ? COLORS.RED : COLORS.YELLOW;
-            }
-        }
-        */
 
         this.setMatrix(grid);
     }
@@ -389,7 +381,7 @@ class SnakeLogic extends GameLogic {
         
         // Show score
         const scoreStr = Math.abs(this.score).toString();
-        const startX = Math.floor((GRID_SIZE - scoreStr.length * 5) / 2);
+        const startX = Math.floor((GRID_SIZE - scoreStr.length * 5) / 2); // Center on full grid
         scoreStr.split('').forEach((char, i) => {
             drawSprite(grid, getCharGrid(char), 12, startX + i * 5, 
                 this.won ? COLORS.YELLOW : COLORS.RED);
@@ -431,17 +423,8 @@ class SnakeLogic extends GameLogic {
             remainingTime: this.remainingTime,
             isPaused: this.isPaused,
             // Added Requirements: width: 19, height: 19, (border property?)
-            width: GRID_SIZE - 2, // Playable width? Or Board width? GRID_SIZE is 20. 
-            // User said "width: 19, height: 19". If grid is 20x20. 
-            // Maybe they mean the grid size itself? 
-            // If they mean playable area (1..18), it is 18x18.
-            // If they mean including border? 20x20?
-            // User sample: "{..., width: 19, height: 19, ...}". 
-            // Let's pass 19 if that's what they observed or want.
-            // But our GRID_SIZE is 20. Maybe they want 19? 
-            // I'll stick to logic values but add property.
-            width: GRID_SIZE, 
-            height: GRID_SIZE,
+            width: this.gridSize, 
+            height: this.gridSize,
             border: true
         };
     }

@@ -56,15 +56,17 @@ const RetroConsole = ({ onGameSelect }) => {
     // Initial Fetch
     useEffect(() => {
         fetchGames().then(data => {
-            setGamesData(data);
+            const activeGames = Array.isArray(data) ? data.filter(g => g.is_active) : [];
+            setGamesData(activeGames);
             setActiveApp('MENU');
             setMessage('');
-            console.log(data);
-            onGameSelect({ game: data[0], isPlaying: false });
+            console.log(activeGames);
+            if (activeGames.length > 0) {
+                onGameSelect({ game: activeGames[0], isPlaying: false });
+            }
 
             // Initialize MenuLogic
-            // Initialize MenuLogic
-            initializeMenu(data);
+            initializeMenu(activeGames);
         });
 
         return () => {
@@ -349,7 +351,8 @@ const RetroConsole = ({ onGameSelect }) => {
                     refreshMenu();
                 },
                 savedState,
-                gameInfo ? gameInfo.id : null // PASS NUMERIC ID HERE
+                gameInfo ? gameInfo.id : null, // PASS NUMERIC ID HERE
+                gameInfo ? gameInfo.config : {} // PASS CONFIG HERE
             );
             console.log(`[RetroConsole] GameLogic Created:`, gameLogicRef.current);
         } catch (e) {
@@ -455,7 +458,7 @@ const RetroConsole = ({ onGameSelect }) => {
         <div className="flex flex-col items-center justify-center p-4 w-full">
             {/* Score & Timer Panel */}
             {!isPaintGame && (activeApp === 'PLAYING' || activeApp === 'PAUSED') && (
-                <div className="flex justify-between w-[260px] mb-2 font-mono text-xs font-bold text-slate-100">
+                <div className="flex justify-between w-[380px] mb-2 font-mono text-xs font-bold text-slate-100">
                     {/* Time Box */}
                     <div className="flex flex-col items-center justify-center w-[110px] px-1 py-1 bg-slate-800 border-2 border-slate-500 rounded-sm shadow-md">
                         <span className="text-[8px] text-slate-400 uppercase tracking-widest mb-0.5 self-start">TIME</span>
@@ -483,13 +486,17 @@ const RetroConsole = ({ onGameSelect }) => {
                 />
             )}
             <DotMatrix matrix={matrix} onDotClick={handleDotClick} />
-            <ConsoleControls
-                onButtonPress={handleInput}
-                showVertical={true}
-                pauseLabel={isPaintGame ? 'SAVE' : 'PAUSE'}
-            />
-            <div className="mt-6 text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-4 w-full">
+
+            <div className="mt-4 mb-2 text-sm font-mono text-gray-500 font-bold uppercase tracking-widest text-center h-4 w-full">
                 {message}
+            </div>
+
+            <div className="transform scale-150 origin-top mt-4 mb-8">
+                <ConsoleControls
+                    onButtonPress={handleInput}
+                    showVertical={true}
+                    pauseLabel={isPaintGame ? 'SAVE' : 'PAUSE'}
+                />
             </div>
         </div>
     );
