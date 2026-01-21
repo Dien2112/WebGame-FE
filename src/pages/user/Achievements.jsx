@@ -8,17 +8,9 @@ const ITEMS_PER_PAGE = 5;
 // Local definitions replacing mockRankingData
 const GAMES = [
   { id: 'all', name: 'All Games' },
-  { id: 'caro_5', name: 'Caro (High 5)' },
-  { id: 'tictactoe', name: 'Tic-Tac-Toe' },
-  { id: 'chess', name: 'Chess' }
-];
-
-const ACHIEVEMENTS_METADATA = [
-  { id: 'first_win', title: 'First Victory', description: 'Win your first game', category: 'wins', icon: 'trophy', threshold: 1, game: 'all' },
-  { id: 'winner_10', title: 'Champion', description: 'Win 10 games', category: 'wins', icon: 'trophy', threshold: 10, game: 'all' },
-  { id: 'games_10', title: 'Dedicated', description: 'Play 10 matches', category: 'matches', icon: 'gamepad', threshold: 10, game: 'all' },
-  { id: 'score_1000', title: 'High Scorer', description: 'Reach 1000 total score', category: 'score', icon: 'star', threshold: 1000, game: 'all' },
-  { id: 'winrate_50', title: 'Sharpshooter', description: 'Maintain > 50% win rate', category: 'winrate', icon: 'percent', threshold: 50, game: 'all' },
+  { id: '3', name: 'Tic-Tac-Toe' },
+  { id: '1', name: 'Snake' },
+  // Add other game IDs as needed or fetch from API in future
 ];
 
 export default function Achievements() {
@@ -28,7 +20,12 @@ export default function Achievements() {
   const [lockedPage, setLockedPage] = useState(1);
 
   // Data State
-  const [userStats, setUserStats] = useState({ total_games: 0, wins: 0, total_score: 0, winRate: 0 });
+  const [userStats, setUserStats] = useState({
+    total_games: 0,
+    wins: 0,
+    total_score: 0,
+    winRate: 0
+  });
   const [serverAchievements, setServerAchievements] = useState([]);
 
   useEffect(() => {
@@ -40,7 +37,7 @@ export default function Achievements() {
       // Fetch Stats
       const profileRes = await api.get('/api/users/profile');
       if (profileRes.user) {
-        const tGames = profileRes.user.total_games || 0;
+        const tGames = profileRes.user.totalGames || 0;
         const tWins = profileRes.user.wins || 0;
         const tScore = profileRes.user.total_score || 0;
 
@@ -52,11 +49,15 @@ export default function Achievements() {
         });
       }
 
-      // Fetch Unlocked Achievements
+      // Fetch Achievements (now contains metadata + unlock status)
       const achRes = await api.get('/api/achievements');
-      if (achRes.achievements) {
-        setServerAchievements(achRes.achievements);
-      }
+      // Backend returns array directly or { achievements: [] }? 
+      // Controller sends res.json(formatted) -> Array.
+      // API lib usually returns response.data.
+      // Let's safe check if array or object
+      const data = Array.isArray(achRes) ? achRes : (achRes.achievements || []);
+      setServerAchievements(data);
+
     } catch (e) {
       console.error("Failed to fetch achievement data", e);
     }
@@ -64,40 +65,75 @@ export default function Achievements() {
 
   // Helper to get stats for game (Start with Global only for now)
   const getStatsForGame = (gameId) => {
-    if (gameId === 'all') return userStats;
-    // Future: fetch or filter per game if backend supports breakdown
-    return { total_games: 0, wins: 0, total_score: 0, winRate: 0 };
+    // Ideally we need per-game stats from backend.
+    // For now, using global stats for simplicity or if gameId is 'all'.
+    // If backend supports per-game stats logic later, we update this.
+    return userStats;
   };
 
   // Calculate achievements based on selected game
   const allAchievements = useMemo(() => {
-    // Basic Logic: Merge Metadata with Progress based on current stats
     const currentStats = getStatsForGame(selectedGame);
 
-    return ACHIEVEMENTS_METADATA.filter(m => selectedGame === 'all' || m.game === selectedGame).map(meta => {
-      // Check if unlocked on server
-      const unlockedServer = serverAchievements.find(sa => sa.type === meta.id);
+    return serverAchievements.filter(ach => {
+      // Filter by Game
+      if (selectedGame === 'all') return true;
+      // ach.game_id can be null (global) or specific ID
+      // If selectedGame is specific, show global + specific? Or just specific?
+      // Usually "All Games" shows global. "Snake" shows Snake achievements.
+      // Let's matching strict:
+      if (!ach.game_id) return true; // Show global in all views? Or only in 'all'? 
+      // Let's assume 'all' view shows everything. 
+      // Specific view shows specific game achievements.
+      return String(ach.game_id) === String(selectedGame);
+    }).map(ach => {
+      // Map Backend Data to UI Props
 
-      // Calculate dynamic progress
+      // Category Mapping
+      let category = 'other';
+      if (ach.condition_type === 'WINS') category = 'wins';
+      if (ach.condition_type === 'PLAY_COUNT') category = 'matches';
+      if (ach.condition_type === 'TOTAL_SCORE' || ach.condition_type === 'HIGH_SCORE') category = 'score';
+      if (ach.condition_type === 'WIN_RATE') category = 'winrate';
+
+      // Icon Mapping based on code or type
+      let icon = 'award';
+      if (category === 'wins') icon = 'trophy';
+      if (category === 'matches') icon = 'gamepad';
+      if (category === 'score') icon = 'star';
+      if (category === 'winrate') icon = 'percent';
+
+      // Parse Progress
       let progress = 0;
       let pValue = 0;
 
-      if (meta.category === 'wins') pValue = currentStats.wins;
-      if (meta.category === 'matches') pValue = currentStats.total_games;
-      if (meta.category === 'score') pValue = currentStats.total_score;
-      if (meta.category === 'winrate') pValue = currentStats.winRate;
+      // Note: This logic uses GLOBAL stats for everything currently
+      // Ideally we need game-specific stats for game-specific achievements
+      if (category === 'wins') pValue = currentStats.wins;
+      if (category === 'matches') pValue = currentStats.total_games;
+      if (category === 'score') pValue = currentStats.total_score;
+      if (category === 'winrate') pValue = currentStats.winRate;
 
-      if (meta.threshold > 0) {
-        progress = Math.min(100, (pValue / meta.threshold) * 100);
+      if (ach.condition_value > 0) {
+        progress = Math.min(100, (pValue / ach.condition_value) * 100);
       }
 
-      const isUnlocked = unlockedServer || (progress >= 100);
+      // If unlocked, 100%
+      if (ach.is_unlocked) {
+        progress = 100;
+      }
 
       return {
-        ...meta,
-        unlocked: !!isUnlocked,
+        id: ach.id,
+        title: ach.name,
+        description: ach.description,
+        category: category,
+        icon: icon,
+        game: ach.game_id ? String(ach.game_id) : 'all',
+        unlocked: ach.is_unlocked,
         progress: progress,
-        unlockedAt: unlockedServer ? unlockedServer.created_at : (isUnlocked ? new Date().toISOString() : null)
+        unlockedAt: ach.unlocked_at,
+        threshold: ach.condition_value
       };
     });
   }, [selectedGame, userStats, serverAchievements]);
@@ -181,8 +217,8 @@ export default function Achievements() {
   };
 
   const getGameLabel = (gameId) => {
-    const game = GAMES.find(g => g.id === gameId);
-    return game ? game.name : gameId;
+    const game = GAMES.find(g => String(g.id) === String(gameId));
+    return game ? game.name : (gameId === 'all' ? 'Global' : `Game ${gameId}`);
   };
 
   // Pagination component
@@ -215,21 +251,21 @@ export default function Achievements() {
   // Achievement Card component
   const AchievementCard = ({ achievement, isLocked = false, showGameTag = false }) => (
     <div className={`p-4 rounded-lg border-2 transition-all ${isLocked
-        ? 'bg-[#F8F9FA] dark:bg-[#0f3460]/50 border-[#D0D7E1] dark:border-[#16213e] opacity-75'
-        : 'bg-white dark:bg-[#16213e] border-[#5790AB] hover:shadow-md'
+      ? 'bg-[#F8F9FA] dark:bg-[#0f3460]/50 border-[#D0D7E1] dark:border-[#16213e] opacity-75'
+      : 'bg-white dark:bg-[#16213e] border-[#5790AB] hover:shadow-md'
       }`}>
       <div className="flex items-start space-x-4">
         <div className={`flex-shrink-0 p-3 rounded-xl ${isLocked
-            ? 'bg-[#D0D7E1]/50 dark:bg-[#16213e]'
-            : 'bg-[#5790AB]/10 dark:bg-[#5790AB]/20'
+          ? 'bg-[#D0D7E1]/50 dark:bg-[#16213e]'
+          : 'bg-[#5790AB]/10 dark:bg-[#5790AB]/20'
           }`}>
           {getIcon(achievement.icon, !isLocked)}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <h3 className={`font-semibold ${isLocked
-                ? 'text-[#5790AB] dark:text-[#9CCDDB]'
-                : 'text-[#072D44] dark:text-white'
+              ? 'text-[#5790AB] dark:text-[#9CCDDB]'
+              : 'text-[#072D44] dark:text-white'
               }`}>
               {achievement.title}
             </h3>
@@ -361,8 +397,8 @@ export default function Achievements() {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${selectedCategory === cat.id
-                    ? 'bg-[#5790AB] text-white'
-                    : 'bg-[#F8F9FA] dark:bg-[#0f3460] text-[#5790AB] dark:text-[#9CCDDB] hover:bg-[#D0D7E1] dark:hover:bg-[#16213e]'
+                  ? 'bg-[#5790AB] text-white'
+                  : 'bg-[#F8F9FA] dark:bg-[#0f3460] text-[#5790AB] dark:text-[#9CCDDB] hover:bg-[#D0D7E1] dark:hover:bg-[#16213e]'
                   }`}
               >
                 <Icon className="w-4 h-4" />
