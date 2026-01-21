@@ -139,8 +139,17 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-slate-400 italic">
-                        Game in progress...
+                    <div className="flex-1 text-slate-600">
+                        {game.instruction ? (
+                            <div className="prose prose-sm prose-slate">
+                                <h3 className="text-sm font-bold text-slate-800 uppercase mb-2">Instructions</h3>
+                                <p className="text-sm leading-relaxed whitespace-pre-line">{game.instruction}</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-slate-400 italic">
+                                Game in progress...
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -69,6 +69,16 @@ class BaseCaroLogic extends GameLogic {
       this.onExit();
       return;
     }
+    if (action === "HELP") {
+        const move = getRandomMove(this.state.board, this.state.boardSize);
+        if (move) {
+            this.state = {
+                ...this.state,
+                cursor: move
+            };
+        }
+        return;
+    }
     const currentRole = this.state.players[this.state.turn];
     if (currentRole === "COMPUTER") return;
     if (currentRole === "COMPUTER") return;
@@ -146,32 +156,34 @@ class BaseCaroLogic extends GameLogic {
     if (currentRole === "HUMAN") {
       this.computerMoved = false;
       this.computerThinkUntil = null;
-      if (this.turnStartTime === null) {
-        this.turnStartTime = now;
-        this.remainingTime = this.turnTimeLimit;
-      }
       
-      // Stop timer if winner exists
-      if (this.state.winner) return; 
+      if (!this.state.winner) {
+          if (this.turnStartTime === null) {
+            this.turnStartTime = now;
+            this.remainingTime = this.turnTimeLimit;
+          }
 
-      const elapsed = now - this.turnStartTime;
-      this.remainingTime = Math.max(0, this.turnTimeLimit - elapsed);
-      
-      // Update UI Timer
-      if (this.setTimer) {
-           this.setTimer(Math.ceil(this.remainingTime / 1000));
-      }
+          const elapsed = now - this.turnStartTime;
+          this.remainingTime = Math.max(0, this.turnTimeLimit - elapsed);
+          
+          // Update UI Timer
+          if (this.setTimer) {
+               this.setTimer(Math.ceil(this.remainingTime / 1000));
+          }
 
-      // HẾT GIỜ → COMPUTER THẮNG (chỉ xử lý nếu chưa có winner)
-      if (this.remainingTime === 0 && !this.state.winner) {
-        const computerColor =
-            this.state.players.Red === "COMPUTER" ? "Red" : "Blue";
-        this.state = {
-          ...this.state,
-          winner: computerColor,
-        };
-        this.updateStatus();
-        return;
+          // HẾT GIỜ → COMPUTER THẮNG (chỉ xử lý nếu chưa có winner)
+          if (this.remainingTime === 0) {
+            const computerColor =
+                this.state.players.Red === "COMPUTER" ? "Red" : "Blue";
+            this.state = {
+              ...this.state,
+              winner: computerColor,
+            };
+            this.updateStatus();
+            // Don't return here, let it render one last time or just allow flow
+            // Actually if we set winner, next loop will catch it. 
+            // We want to verify render happens.
+          }
       }
     }
     const grid = renderCaro(this.state, tick);

@@ -190,7 +190,7 @@ export default function ProfilePage() {
               </div>
               {/* Note: Backend might not send losses directly if only total and wins are tracked, can infer */}
               <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
-                {(profileData?.total_games || 0) - (profileData?.wins || 0)}
+                {(profileData?.totalGames || 0) - (profileData?.wins || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -199,8 +199,8 @@ export default function ProfilePage() {
                 <span className="text-[#072D44] dark:text-white">Win Rate</span>
               </div>
               <span className="font-semibold text-[#064469] dark:text-[#9CCDDB]">
-                {(profileData?.total_games || 0) > 0
-                  ? Math.round(((profileData?.wins || 0) / (profileData?.total_games || 1)) * 100)
+                {(profileData?.totalGames || 0) > 0
+                  ? Math.round(((profileData?.wins || 0) / (profileData?.totalGames || 1)) * 100)
                   : 0}%
               </span>
             </div>

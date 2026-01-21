@@ -6,7 +6,6 @@ export default function Games() {
     const [selectedGame, setSelectedGame] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    // Callback from RetroConsole when a game is highlighted/launched
     const handleGameSelect = ({ game, isPlaying }) => {
         setSelectedGame(game);
         setIsPlaying(isPlaying);

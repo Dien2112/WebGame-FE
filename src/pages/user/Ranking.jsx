@@ -14,12 +14,26 @@ export default function Ranking() {
     const [activeTab, setActiveTab] = useState("global"); // 'global' | 'friends'
     const [selectedGame, setSelectedGame] = useState(""); // '' = all games
 
-    const games = [
-        { value: "", label: "All Games" },
-        { value: "caro_5", label: "Caro (High 5)" },
-        { value: "tictactoe", label: "Tic-Tac-Toe" },
-        { value: "chess", label: "Cờ Vua" }
-    ];
+    const [games, setGames] = useState([{ value: "", label: "All Games" }]);
+
+    useEffect(() => {
+        const fetchGamesList = async () => {
+            try {
+                const res = await api.get('/api/games');
+                const gamesArray = res.data || res;
+                // Filter active and map to options
+                const activeGames = Array.isArray(gamesArray) ? gamesArray.filter(g => g.is_active).map(g => ({
+                    value: g.id, // Integer ID
+                    label: g.name
+                })) : [];
+                activeGames.unshift({ value: "", label: "All Games" });
+                setGames(activeGames);
+            } catch (err) {
+                console.error("Failed to fetch games for filter", err);
+            }
+        };
+        fetchGamesList();
+    }, []);
 
     useEffect(() => {
         if (token) {
