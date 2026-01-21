@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext"; // Assuming path based on F
 
 export default function Messages() {
   //STATE
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [messageInput, setMessageInput] = useState("");
@@ -68,7 +68,7 @@ export default function Messages() {
 
   useEffect(() => {
     // Don't sync when searching - only sync in normal message view
-    if (searchQuery) return;
+    if (searchQuery || !user) return;
     
     const interval = setInterval(async () => {
       try {
@@ -84,18 +84,11 @@ export default function Messages() {
           const updated = [...prev];
 
           messages.forEach((msg) => {
-            console.log("Processing message:", {
-              id: msg.id,
-              sender_id: msg.sender_id,
-              receiver_id: msg.receiver_id,
-              token_userId: token.userId,
-              content: msg.content,
-            });
-
-            if (msg.sender_id === token.userId) return; // Skip messages sent by self
+            const isFromMe = msg.sender_id === user.id;
+            if (isFromMe) return; // Skip messages sent by self
 
             const partnerId =
-              msg.sender_id === token.userId ? msg.receiver_id : msg.sender_id;
+              msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
 
             let conv = updated.find((c) => c.id === partnerId);
 
@@ -129,7 +122,7 @@ export default function Messages() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [token.userId, searchQuery, lastSyncAt]);
+  }, [user?.id, searchQuery, lastSyncAt, token]);
 
   //EFFECTS: Cập nhật cuộc trò chuyện được chọn
   const selectedConversation = conversations.find((c) => c.id === selectedId);
