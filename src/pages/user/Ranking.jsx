@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 // import { MOCK_RANKINGS, MOCK_FRIENDS_RANKINGS } from "@/lib/mockRankingData"; // Removed
 
 export default function Ranking() {
@@ -13,6 +14,10 @@ export default function Ranking() {
     const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("global"); // 'global' | 'friends'
     const [selectedGame, setSelectedGame] = useState(""); // '' = all games
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const PAGE_SIZE = 10;
 
     const [games, setGames] = useState([{ value: "", label: "All Games" }]);
 
@@ -37,9 +42,15 @@ export default function Ranking() {
 
     useEffect(() => {
         if (token) {
-            fetchRankings();
+            setCurrentPage(1);
         }
     }, [token, activeTab, selectedGame]);
+
+    useEffect(() => {
+        if (token) {
+            fetchRankings();
+        }
+    }, [token, activeTab, selectedGame, currentPage]);
 
     const fetchRankings = async () => {
         setLoading(true);
@@ -47,11 +58,28 @@ export default function Ranking() {
             // Real API Call
             const params = new URLSearchParams({
                 type: activeTab,
+                page: currentPage,
+                limit: PAGE_SIZE,
                 ...(selectedGame && { game: selectedGame })
             });
             const data = await api.get(`/api/rankings?${params}`);
 
-            setRankings(data);
+            // Handle response - can be array or object with data/total
+            if (Array.isArray(data)) {
+                setRankings(data);
+                // If we get less than PAGE_SIZE, we're on the last page
+                if (data.length < PAGE_SIZE) {
+                    setTotalPages(currentPage);
+                } else {
+                    // Assume there might be more pages
+                    setTotalPages(currentPage + 1);
+                }
+            } else {
+                setRankings(data.data || data.rankings || []);
+                const total = data.total || data.totalCount || 0;
+                setTotalCount(total);
+                setTotalPages(Math.ceil(total / PAGE_SIZE) || 1);
+            }
             setError("");
         } catch (err) {
             setError(err.message);
@@ -256,10 +284,41 @@ export default function Ranking() {
                 </CardContent>
             </Card>
 
+            {/* Pagination Controls */}
+            {rankings.length > 0 && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === 1 || loading}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                    </Button>
+
+                    <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                    </span>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage >= totalPages || loading}
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
+
             {/* Footer Info */}
             {rankings.length > 0 && (
                 <div className="text-center text-sm text-muted-foreground">
-                    Showing {rankings.length} {rankings.length === 1 ? "player" : "players"}
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1} - {((currentPage - 1) * PAGE_SIZE) + rankings.length}
+                    {totalCount > 0 && ` of ${totalCount}`}
+                    {rankings.length === 1 ? " player" : " players"}
                     {selectedGame && ` in ${games.find(g => g.value === selectedGame)?.label}`}
                 </div>
             )}
