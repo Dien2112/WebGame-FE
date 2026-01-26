@@ -226,7 +226,6 @@ class BaseCaroLogic extends GameLogic {
     
     if (!this.scoreSubmitted) {
         this.scoreSubmitted = true;
-        console.log(`[BaseCaro] Submitting Score: ${scoreChange}, GameID: ${this.gameId}`);
         if (this.gameId) {
              submitScore(this.gameId, scoreChange);
         } else {
