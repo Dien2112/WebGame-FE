@@ -1,16 +1,85 @@
-# React + Vite
+# WebGame Frontend - React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Danh sách thành viên**
 
-Currently, two official plugins are available:
+- Bùi Việt Bình (22120030)
+- Lương Thị Kim Chi (22120034)
+- Nguyễn Đăng Điền (22120062)
+- Đoàn Gia Huệ (22120116)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick Start
 
-## React Compiler
+### 1. Cài đặt Dependencies
+```bash
+npm install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Cấu hình Environment
+Tạo file `.env`:
+Sử dụng Backend local (đã chạy):
+```
+VITE_API_URL=http://localhost:3000
+```
 
-## Expanding the ESLint configuration
+hoặc dùng Backend đã deploy online
+```
+VITE_API_URL=https://webgame-be.vercel.app
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 3. Khởi động Dev Server
+```bash
+npm start
+```
+
+Ứng dụng sẽ mở tại: **http://localhost:5173**
+
+### 4. Build cho Production
+```bash
+npm run build
+```
+## Tài khoản
+### Tài khoản Admin
+- admin@gmail.com
+123456
+### Tài khoản User
+- alex@gmail.com
+123456
+
+## Thông tin ứng dụng
+
+- **Framework**: React 18+ với Vite
+- **Styling**: CSS + Tailwind CSS
+- **UI Components**: Shadcn/ui + Lucide Icons
+- **State Management**: Context API + Local Storage
+- **HTTP Client**: Fetch API
+
+## Các tính năng
+
+- Giao diện console retro
+- 7 trò chơi: Caro 5, Caro 4, Tic Tac Toe, Snake, Line, Memory, Paint
+- Hệ thống xác thực người dùng
+- Bình luận và đánh giá game
+- Quản lý bạn bè
+- Tin nhắn trực tiếp
+- Bảng xếp hạng
+- Hệ thống thành tích
+- Quản lý người chơi
+- Xem thống kê
+- Cài đặt game
+
+## Cấu trúc thư mục
+
+```
+src/
+├── components/          # React components
+│   ├── games/          # Game UI components
+│   └── ui/             # UI components (buttons, inputs, etc)
+├── pages/              # Page components
+├── game-logic/         # Game logic implementations
+│   ├── model/          # Base game classes
+│   └── utils/          # Game utilities & constants
+├── context/            # React context (Auth, GameConfig)
+├── lib/                # Utility functions & API client
+├── App.jsx             # Main app component
+└── index.css           # Global styles
+```
