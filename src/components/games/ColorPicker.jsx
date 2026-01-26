@@ -39,7 +39,6 @@ const ColorPicker = ({ selectedColorIndex, onColorSelect, onClearAll }) => {
     const handleCustomColorChange = (e) => {
         const newColor = e.target.value;
         setCustomColor(newColor);
-        // Select the custom color (index 21 - after all preset colors)
         onColorSelect(21, newColor);
     };
 

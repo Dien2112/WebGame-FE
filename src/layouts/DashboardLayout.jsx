@@ -11,7 +11,6 @@ export default function DashboardLayout() {
 
     return (
         <div className="flex min-h-screen w-full">
-            {/* Mobile Overlay */}
             {sidebarOpen && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -19,7 +18,6 @@ export default function DashboardLayout() {
                 />
             )}
 
-            {/* Sidebar */}
             <Sidebar 
                 className={`
                     fixed md:sticky top-0 left-0 z-50 h-screen transition-all duration-300 dark:bg-[#1a335d]
@@ -32,11 +30,8 @@ export default function DashboardLayout() {
                 onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
             />
 
-            {/* Main Content */}
             <div className="flex flex-col min-h-screen w-full bg-[#F8F9FA] dark:bg-[#1a1a2e]">
-                {/* Header with Mobile Menu Button */}
                 <div className="flex items-center gap-2 h-14 lg:h-[60px] border-b px-4 lg:px-6 bg-white dark:bg-[#0f3460]" style={{ borderColor: '#072D44' }}>
-                    {/* Mobile Menu Button */}
                     <Button
                         variant="ghost"
                         size="icon"

@@ -18,7 +18,6 @@ export default function Register() {
         setIsLoading(true);
         setError("");
         try {
-            // api.post handles JSON stringify and base URL
             await api.post("/api/auth/register", data);
 
             navigate("/login");

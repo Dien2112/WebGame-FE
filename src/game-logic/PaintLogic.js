@@ -7,7 +7,6 @@ class PaintLogic extends GameLogic {
     constructor(setMatrix, setScore, setStatus, onExit, savedState) {
         super(setMatrix, setScore, setStatus, onExit);
 
-        // Available colors for painting (matching ColorPicker component)
         this.colorPalette = [
             COLORS.OFF,    // Eraser
             COLORS.BLACK,  // Black
@@ -32,11 +31,10 @@ class PaintLogic extends GameLogic {
             '#DDD6FE',     // Lavender
         ];
 
-        // Initialize state
         this.state = {
-            selectedColorIndex: savedState?.selectedColorIndex || 4, // Start with RED
+            selectedColorIndex: savedState?.selectedColorIndex || 4, 
             canvas: savedState?.canvas || this.createEmptyCanvas(),
-            customColor: savedState?.customColor || '#FF00FF', // Store custom color
+            customColor: savedState?.customColor || '#FF00FF',
         };
 
         this.setStatus('PAINT - CLICK TO DRAW');
@@ -44,7 +42,6 @@ class PaintLogic extends GameLogic {
     }
 
     createEmptyCanvas() {
-        // Create 20x20 canvas (full grid)
         const canvas = [];
         for (let i = 0; i < 20; i++) {
             canvas.push(new Array(20).fill(COLORS.OFF));
@@ -52,7 +49,6 @@ class PaintLogic extends GameLogic {
         return canvas;
     }
 
-    // Method to be called from external ColorPicker
     setSelectedColor(colorIndex, customColor) {
         this.state.selectedColorIndex = colorIndex;
         if (customColor) {
@@ -76,7 +72,6 @@ class PaintLogic extends GameLogic {
             return;
         }
 
-        // Navigate through color palette with keyboard
         if (action === 'LEFT') {
             this.state.selectedColorIndex =
                 (this.state.selectedColorIndex - 1 + this.colorPalette.length) % this.colorPalette.length;
@@ -84,7 +79,6 @@ class PaintLogic extends GameLogic {
             this.state.selectedColorIndex =
                 (this.state.selectedColorIndex + 1) % this.colorPalette.length;
         } else if (action === 'ENTER') {
-            // Clear canvas
             this.state.canvas = this.createEmptyCanvas();
             this.setStatus('CANVAS CLEARED!');
             setTimeout(() => this.setStatus('PAINT - CLICK TO DRAW'), 500);
@@ -92,14 +86,11 @@ class PaintLogic extends GameLogic {
     }
 
     onDotClick(r, c) {
-        // Paint on canvas (full 20x20 grid)
         if (r >= 0 && r < 20 && c >= 0 && c < 20) {
             let selectedColor;
             if (this.state.selectedColorIndex === 21) {
-                // Use custom color from color wheel
                 selectedColor = this.state.customColor;
             } else {
-                // Use preset color from palette
                 selectedColor = this.colorPalette[this.state.selectedColorIndex];
             }
             this.state.canvas[r][c] = selectedColor;
@@ -109,7 +100,6 @@ class PaintLogic extends GameLogic {
     onTick(tick) {
         const grid = createEmptyGrid();
 
-        // Draw canvas (full 20x20 grid)
         for (let r = 0; r < 20; r++) {
             for (let c = 0; c < 20; c++) {
                 grid[r][c] = this.state.canvas[r][c];
@@ -123,7 +113,6 @@ class PaintLogic extends GameLogic {
         const grid = createEmptyGrid();
 
         if (!saveData) {
-            // New game preview - show "PAINT" text
             drawSprite(grid, getCharGrid('P'), 8, 4, COLORS.RED);
             drawSprite(grid, getCharGrid('A'), 8, 8, COLORS.YELLOW);
             drawSprite(grid, getCharGrid('I'), 8, 12, COLORS.BLUE);
@@ -132,9 +121,7 @@ class PaintLogic extends GameLogic {
             return grid;
         }
 
-        // Show saved canvas preview
         if (saveData.canvas) {
-            // Draw the saved canvas
             for (let r = 0; r < 20; r++) {
                 for (let c = 0; c < 20; c++) {
                     if (saveData.canvas[r] && saveData.canvas[r][c]) {
@@ -147,7 +134,6 @@ class PaintLogic extends GameLogic {
         return grid;
     }
 
-    // Save state for persistence
     getSaveData() {
         return {
             canvas: this.state.canvas,

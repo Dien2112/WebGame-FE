@@ -11,7 +11,7 @@ const SNAKE_ICON = [
     [0,0,0,0,0,0,1,0,0,0,0,0],
     [0,0,1,1,1,1,1,0,0,0,0,0],
     [0,0,1,0,0,0,0,0,0,0,0,0],
-    [0,0,1,1,1,1,1,1,1,0,1,0], // Head at end
+    [0,0,1,1,1,1,1,1,1,0,1,0],
     [0,0,0,0,0,0,0,0,0,0,0,0]
 ];
 
@@ -75,13 +75,13 @@ const LINE_ICON = [
 ];
 
 export const MENU_ITEMS = [
-  { id: 'CARO5', label: 'CARO5', icon: CARO_ICON },
-  { id: 'CARO4', label: 'CARO4', icon: CARO_ICON },
-  { id: 'TICTACTOE', label: 'X-O', icon: TICTACTOE_ICON },
-  { id: 'SNAKE', label: 'SNAKE', icon: SNAKE_ICON },
-  { id: 'LINE', label: 'LINE', icon: LINE_ICON },
-  { id: 'MEM', label: 'MEM', icon: MEM_ICON },
-  { id: 'PAINT', label: 'PAINT', icon: PAINT_ICON },
+  { internalId: 'CARO5', label: 'CARO5', icon: CARO_ICON },
+  { internalId: 'CARO4', label: 'CARO4', icon: CARO_ICON },
+  { internalId: 'TICTACTOE', label: 'X-O', icon: TICTACTOE_ICON },
+  { internalId: 'SNAKE', label: 'SNAKE', icon: SNAKE_ICON },
+  { internalId: 'LINE', label: 'LINE', icon: LINE_ICON },
+  { internalId: 'MEM', label: 'MEM', icon: MEM_ICON },
+  { internalId: 'PAINT', label: 'PAINT', icon: PAINT_ICON },
 ];
 
 export const initialMenuState = {
@@ -131,7 +131,6 @@ export const renderMenu = (state, tick, items = MENU_ITEMS) => {
 
   const item = items[state.selectedIndex];
   
-  // Render Label (Game Name) at Top
   const label = item.label || item.name || '';
   const totalWidth = (label.length * 4) - 1; 
   let startX = Math.floor((20 - totalWidth) / 2);
@@ -139,34 +138,24 @@ export const renderMenu = (state, tick, items = MENU_ITEMS) => {
   
   for (let i = 0; i < label.length; i++) {
     const charGrid = getCharGrid(label[i]);
-    if (charGrid) drawSprite(grid, charGrid, 1, startX, COLORS.ON); // Draw text at top
+    if (charGrid) drawSprite(grid, charGrid, 1, startX, COLORS.ON);
     startX += 4;
   }
 
-  // Render Icon in Center/Bottom
   const icon = item.icon;
   if (icon) {
-      // Approximate centering based on icon size
-      const iconW = icon[0] ? icon[0].length : 8; // assuming rectangle
+      const iconW = icon[0] ? icon[0].length : 8;
       const iconX = Math.floor((20 - iconW) / 2);
-      const iconY = 8; // push down
-      drawSprite(grid, icon, iconY, iconX, COLORS.BLUE); // Use Blue for icon
-  } else {
-      // Fallback if no icon: Show something or just center text more?
-      // For Pause menu, maybe just text is enough.
-      // Or we can draw a default box/icon.
+      const iconY = 8;
+      drawSprite(grid, icon, iconY, iconX, COLORS.BLUE);
   }
 
-
-  // Draw Flickering Arrows
   const showArrows = Math.floor(tick / 5) % 2 === 0; 
 
   if (showArrows) {
-    // Left Arrow (only if not first)
     if (state.selectedIndex > 0) {
        drawSprite(grid, getCharGrid('<'), 9, 0, COLORS.YELLOW);
     }
-    // Right Arrow (only if not last)
     if (state.selectedIndex < items.length - 1) {
        drawSprite(grid, getCharGrid('>'), 9, 17, COLORS.YELLOW);
     }

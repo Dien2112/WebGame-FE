@@ -84,7 +84,6 @@ const GameConfigContext = createContext(null);
 
 export function GameConfigProvider({ children }) {
     const [games, setGames] = useState(() => {
-        // Load from localStorage on initial render
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             try {
@@ -96,36 +95,30 @@ export function GameConfigProvider({ children }) {
         return defaultGameConfigs;
     });
 
-    // Save to localStorage whenever games change
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(games));
     }, [games]);
 
-    // Toggle game enabled/disabled
     const toggleGame = (gameId) => {
         setGames(games.map(game =>
             game.id === gameId ? { ...game, enabled: !game.enabled } : game
         ));
     };
 
-    // Update board size for a game
     const updateBoardSize = (gameId, newSize) => {
         setGames(games.map(game =>
             game.id === gameId ? { ...game, boardSize: newSize } : game
         ));
     };
 
-    // Get a specific game config
     const getGameConfig = (gameId) => {
         return games.find(game => game.id === gameId);
     };
 
-    // Get all enabled games
     const getEnabledGames = () => {
         return games.filter(game => game.enabled);
     };
 
-    // Reset all configs to default
     const resetToDefault = () => {
         setGames(defaultGameConfigs);
     };

@@ -11,10 +11,9 @@ class MemLogic extends GameLogic {
         super(setMatrix, setScore, setStatus, onExit);
         
         this.config = {
-            timeLimit: config.timeLimit || config.time || 120 // Default 120s
+            timeLimit: config.timeLimit || config.time || 120 
         };
 
-        // Khởi tạo state từ dữ liệu đã lưu hoặc state mặc định
         this.state = {
             ...initialMemoryState,
             timeLeft: savedState ? (savedState.timeLeft || this.config.timeLimit) : this.config.timeLimit,
@@ -24,20 +23,18 @@ class MemLogic extends GameLogic {
         if (savedState && savedState.hintsRemaining !== undefined) this.state.hintsRemaining = savedState.hintsRemaining;
 
         this.setStatus('MEMORY GAME');
-        this.name = 'MEM'; // Must match internal_id in DB
+        this.name = 'MEM';
         this.gameId = gameId;
-        this.tickCounter = 0;  // Đếm tick để update timer mỗi giây
+        this.tickCounter = 0;  
     }
 
     preview(saveData, tick) {
         if (!saveData) {
-            // Preview game mới -> Hiển thị chữ "MEM"
             const grid = createEmptyGrid();
             drawSprite(grid, getCharGrid('M'), 6, 2, COLORS.RED);
             drawSprite(grid, getCharGrid('E'), 6, 7, COLORS.BLUE);
             drawSprite(grid, getCharGrid('M'), 6, 12, COLORS.YELLOW);
 
-            // Vẽ chữ "GAME"
             drawSprite(grid, getCharGrid('G'), 12, 2, COLORS.PURPLE);
             drawSprite(grid, getCharGrid('A'), 12, 7, '#F97316');
             drawSprite(grid, getCharGrid('M'), 12, 12, '#06b6d4');
@@ -46,7 +43,6 @@ class MemLogic extends GameLogic {
             return grid;
         }
 
-        // Hiển thị game đã lưu
         const state = {
             cards: saveData.cards || initialMemoryState.cards,
             matched: saveData.matched || [],
@@ -70,18 +66,14 @@ class MemLogic extends GameLogic {
              return;
         }
 
-        // Xử lý reset game khi đã thắng hoặc thua
         if (this.state.gameOver && action === 'ENTER') {
-            console.log('[MemLogic] Resetting game');
             this.tickCounter = 0;
             const nextState = updateMemory(this.state, action);
             this.state = nextState;
         } else {
-            // Cập nhật state theo logic game
             const nextState = updateMemory(this.state, action);
             this.state = nextState;
             
-            // Check Win Trigger from Input
             if (this.state.gameOver && !this.state.submitted) {
                 this.endGame();
             }
@@ -89,47 +81,38 @@ class MemLogic extends GameLogic {
         
         this.updateStatus();
 
-        // Cập nhật điểm
         this.setScore(this.state.score);
     }
 
     onDotClick(r, c) {
-        // Chuyển tọa độ pixel thành index thẻ
         const cardIndex = getCardIndexFromGrid(r, c);
 
         if (cardIndex >= 0 && cardIndex < TOTAL_CARDS) {
-            console.log(`[MemLogic] Clicked Card: ${cardIndex}`);
 
             if (!this.state.gameOver && this.state.canFlip) {
-                // Đặt cursor vào thẻ được click
                 this.state = {
                     ...this.state,
                     cursor: cardIndex
                 };
 
-                // Kích hoạt ENTER để lật thẻ
                 this.onConsolePress('ENTER');
             }
         }
     }
 
     onTick(tick) {
-        // Tự động úp thẻ không khớp sau delay
         this.state = autoHideCards(this.state);
 
-        // Cập nhật timer mỗi giây (10 ticks = 1 giây vì tick = 100ms)
         this.tickCounter++;
         if (this.tickCounter >= 10) {
             this.state = updateTimer(this.state);
             this.tickCounter = 0;
             
-            // Check End Game via Timer (Timeout)
             if (this.state.gameOver && !this.state.submitted) {
                 this.endGame();
             }
         }
         
-        // Update Hint Timer
         if (this.state.hintTimer > 0) {
             this.state.hintTimer--;
             if (this.state.hintTimer <= 0) {
@@ -137,14 +120,12 @@ class MemLogic extends GameLogic {
             }
         }
 
-        // Vẽ game
         const grid = renderMemory(this.state, tick);
         this.setMatrix(grid);
         this.updateStatus();
     }
 
     updateStatus() {
-        // Chuyển đổi giây thành phút:giây
         const minutes = Math.floor(this.state.timeLeft / 60);
         const seconds = this.state.timeLeft % 60;
         const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -163,18 +144,13 @@ class MemLogic extends GameLogic {
     endGame() {
         this.state.submitted = true;
         
-        // Final Score Calculation
         if (!this.state.isTimedOut) {
-             // Win Case: Apply Formula
-             // Formula: Score + (TimeLeft - 120) * 2
              const rawBonus = (this.state.timeLeft - 120) * 2;
              this.state.score = Math.max(0, this.state.score + rawBonus);
         } else {
-             // Timeout Case: Score is 0 (handled in utils, but ensure it)
              this.state.score = 0; 
         }
 
-        console.log(`[MemLogic] Game Over! Final Score: ${this.state.score}`);
         this.setScore(this.state.score);
         
         if (this.gameId) { 
@@ -185,7 +161,6 @@ class MemLogic extends GameLogic {
     activateHint() {
         if (this.state.hintsRemaining <= 0 || this.state.score < 40) return;
 
-        // Find a matching pair that is NOT matched and NOT flipped
         const cards = this.state.cards;
         const unrevealedIndices = [];
         for(let i=0; i<cards.length; i++) {
@@ -194,7 +169,6 @@ class MemLogic extends GameLogic {
             }
         }
 
-        // Search for pair in unrevealed
         let pair = null;
         for (let i = 0; i < unrevealedIndices.length; i++) {
             for (let j = i + 1; j < unrevealedIndices.length; j++) {
@@ -213,7 +187,6 @@ class MemLogic extends GameLogic {
             this.state.score -= 40;
             this.state.hintCards = pair;
             this.state.hintTimer = 20; // 2s
-            console.log(`[MemLogic] Hint activated: ${pair}`);
         }
     }
     
@@ -224,7 +197,7 @@ class MemLogic extends GameLogic {
             score: this.state.score,
             timeLeft: this.state.timeLeft,
             hintsRemaining: this.state.hintsRemaining,
-            width: 4, // From GAME_CONFIG
+            width: 4, 
             height: 4
         };
     }

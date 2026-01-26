@@ -5,24 +5,16 @@ import { BUTTONS } from '@/game-logic/utils/constants';
 const ConsoleControls = ({ onButtonPress, showVertical = false, pauseLabel = 'PAUSE' }) => {
     return (
         <div className="flex flex-col items-center gap-1 mt-1.5 p-1.5 bg-gray-200 rounded-xl shadow-lg border-t-2 border-white/50 border-b-4 border-black/20 w-fit mx-auto min-w-[150px]">
-            {/* ... */}
-            {/* Skipping unchanged parts logic is not supported in replace_file_content nicely for props update unless I replace start block */}
 
-            {/* Wait, I cannot use ... in replacement content. I must provide full replacement. */}
-            {/* I will use multi_replace for safer editing. */}
-
-            {/* Directional Controls */}
             <div className="flex justify-center w-full px-1 items-center">
                 {showVertical ? (
                     <div className="flex flex-col items-center gap-0.5">
-                        {/* UP */}
                         <ControlButton
                             onClick={() => onButtonPress(BUTTONS.UP)}
                             label="UP"
                             icon={<ArrowUp size={12} />}
                             color="bg-slate-700 hover:bg-slate-600"
                         />
-                        {/* L - Do - R */}
                         <div className="flex items-center gap-0.5">
                             <ControlButton
                                 onClick={() => onButtonPress(BUTTONS.LEFT)}
@@ -61,8 +53,6 @@ const ConsoleControls = ({ onButtonPress, showVertical = false, pauseLabel = 'PA
                     </div>
                 )}
             </div>
-
-            {/* Action Buttons */}
             <div className="flex justify-center gap-1.5 mt-0.5">
                 <ActionButton
                     onClick={() => onButtonPress(BUTTONS.BACK)}
@@ -92,8 +82,6 @@ const ConsoleControls = ({ onButtonPress, showVertical = false, pauseLabel = 'PA
         </div>
     );
 };
-
-// Sub-components for styling consistency
 
 const ControlButton = ({ onClick, icon, label, color }) => (
     <div className="flex flex-col items-center gap-0.5">

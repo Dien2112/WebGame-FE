@@ -1,13 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-// Note: Radix Slot is not installed, so let's simplify for now or assume I need to install it.
-// Actually, for a simple button, we don't strictly need Slot unless creating a deeply polymorphic component.
-// Let's implement a standard Button without Radix for now to avoid extra deps unless user specified.
-// User said "We have tailwindcss, shadcn...". Usually shadcn uses Radix.
-// But I don't want to install radix packages blindly. 
-// I'll stick to simple implementation first and add "asChild" support later if needed.
-
 const Button = React.forwardRef(({ className, variant = "default", size = "default", ...props }, ref) => {
     const variants = {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",

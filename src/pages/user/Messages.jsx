@@ -8,7 +8,6 @@ import { api } from "@/lib/api";
 import { useAuth } from "../../context/AuthContext"; // Assuming path based on Friends.jsx location
 
 export default function Messages() {
-  //STATE
   const { token, user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -17,11 +16,9 @@ export default function Messages() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
-  //REF
   const messagesEndRef = useRef(null);
   const PAGE_SIZE = 6;
 
-  //EFFECTS: Fetch data from API
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -36,7 +33,7 @@ export default function Messages() {
           id: c.id,
           name: c.name,
           avatar: c.avatar,
-          status: c.status ? "Online" : "Offline", // API returns boolean
+          status: c.status ? "Online" : "Offline",
           messages: (c.messages || []).map((m) => ({
             id: m.id,
             sender: m.is_sender ? "me" : "them",
@@ -50,7 +47,6 @@ export default function Messages() {
           setSelectedId(formatted[0].id);
         }
         
-        // Set lastSyncAt from the newest message across all conversations
         const allMessages = formatted.flatMap((c) => c.messages);
         if (allMessages.length > 0) {
           const newest = allMessages.reduce((a, b) =>
@@ -67,7 +63,6 @@ export default function Messages() {
   }, [token, searchQuery]);
 
   useEffect(() => {
-    // Don't sync when searching - only sync in normal message view
     if (searchQuery || !user) return;
     
     const interval = setInterval(async () => {
@@ -85,7 +80,7 @@ export default function Messages() {
 
           messages.forEach((msg) => {
             const isFromMe = msg.sender_id === user.id;
-            if (isFromMe) return; // Skip messages sent by self
+            if (isFromMe) return;
 
             const partnerId =
               msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
@@ -93,17 +88,14 @@ export default function Messages() {
             let conv = updated.find((c) => c.id === partnerId);
 
             if (!conv) {
-              console.log("Creating new conversation for partner:", partnerId);
-              return; // For now, skip messages from unknown conversations
+              return; 
             }
 
-            // Prevent duplicate: check ID strict hơn
             const exists = conv.messages.some((m) => m.id === msg.id);
             if (exists) {
               return;
             }
 
-            // unshift vì backend truyền DESC (mới → cũ)
             conv.messages.unshift({
               id: msg.id,
               sender: msg.sender_id === token.userId ? "me" : "them",
@@ -124,10 +116,8 @@ export default function Messages() {
     return () => clearInterval(interval);
   }, [user?.id, searchQuery, lastSyncAt, token]);
 
-  //EFFECTS: Cập nhật cuộc trò chuyện được chọn
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
-  //HANDLERS
   const handleSendMessage = async () => {
     if (messageInput.trim() === "" || !selectedConversation) return;
 
@@ -150,12 +140,10 @@ export default function Messages() {
     );
     setMessageInput("");
     
-    // Clear search when sending a message (to re-enable sync)
     if (searchQuery) {
       setSearchQuery("");
     }
     
-    // Cập nhật lastSyncAt để prevent duplicate khi sync
     setLastSyncAt(new Date().toISOString());
     try {
       await api.post("/api/messages", {
@@ -167,7 +155,6 @@ export default function Messages() {
     }
   };
 
-  //EFFECTS: Cuộn xuống tin nhắn mới nhất khi có tin nhắn mới
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -193,7 +180,6 @@ export default function Messages() {
 
   return (
     <div className="flex h-[calc(100vh-9rem)] bg-background">
-      {/* LEFT: Conversation list */}
       <div className="w-[320px] border-r flex flex-col">
         <div className="p-4">
           <Input
@@ -226,7 +212,6 @@ export default function Messages() {
                   <div className="flex justify-between items-center">
                     <p className="font-semibold text-sm">{c.name}</p>
                     <span className="text-xs opacity-70">
-                      {/* Time logic if available, else blank */}
                     </span>
                   </div>
                   <p className="text-xs opacity-80 truncate">
@@ -271,11 +256,9 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* RIGHT: Chat window */}
       <div className="flex-1 flex flex-col">
         {selectedConversation ? (
           <>
-            {/* Chat header */}
             <div className="h-16 border-b flex items-center justify-between px-6">
               <div className="flex items-center gap-3">
                 <Avatar>
@@ -295,7 +278,6 @@ export default function Messages() {
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {orderedMessages.length > 0 ? (
                 orderedMessages.map((m) => (
@@ -322,7 +304,6 @@ export default function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="p-4 border-t flex items-center gap-3">
               <Input
                 value={messageInput}

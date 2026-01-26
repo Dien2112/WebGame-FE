@@ -5,8 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Star, MessageSquare, Clock } from 'lucide-react';
 
 const GameDetailsPanel = ({ game, isPlaying }) => {
-    // game: The full game object from the list (including config)
-    // activeGameId: 'SNAKE', 'TICTACTOE' etc.
 
     const [comments, setComments] = useState([]);
     const [stats, setStats] = useState({ avgRating: 0, total: 0 });
@@ -16,7 +14,6 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
 
     useEffect(() => {
         if (game?.id) {
-            console.log(game.id, game.name);
             fetchComments(game.id);
         }
     }, [game?.id]);
@@ -38,8 +35,6 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
         if (!newComment.trim() || !game?.id) return;
 
         try {
-            // Assuming auth is handled or we use a hardcoded user for now (handled by BE controller fallback if no auth)
-            // Ideally, we get user from context
             const payload = {
                 content: newComment,
                 rating: newRating,
@@ -66,7 +61,7 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
 
     return (
         <div className="w-80 h-[600px] bg-white border-2 border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-lg ml-6">
-            {/* Header */}
+
             <div className="p-6 border-b border-slate-100 bg-slate-50">
                 <h2 className="text-2xl font-bold text-slate-800 mb-1">{game.name || game.game}</h2>
                 <div className="flex items-center text-yellow-500 font-bold space-x-2">
@@ -76,9 +71,7 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
                 </div>
             </div>
 
-            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Rating Input & Comments (Only when not playing) */}
                 {!isPlaying ? (
                     <>
                         <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
@@ -105,7 +98,6 @@ const GameDetailsPanel = ({ game, isPlaying }) => {
                             </Button>
                         </div>
 
-                        {/* Comments List */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-slate-900 flex items-center">
                                 <MessageSquare className="w-4 h-4 mr-2" />

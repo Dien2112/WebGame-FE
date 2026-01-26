@@ -63,9 +63,6 @@ export default function AdminStats() {
 
     if (!stats) return <div>Failed to load statistics.</div>;
 
-    // Filter logic for plays card (UI only for now, as API returns all)
-    // If we want backend filter, we need query param for overview. 
-    // Given the endpoint returns structure { total, today, thisWeek, thisMonth }, we can just pick the right one.
     const getFilteredPlays = () => {
         if (timeFilter === 'today') return stats.totalPlays.today;
         if (timeFilter === 'week') return stats.totalPlays.thisWeek;
@@ -94,7 +91,6 @@ export default function AdminStats() {
                 </div>
             </div>
 
-            {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="p-6">
                     <div className="flex items-center justify-between">
@@ -146,9 +142,7 @@ export default function AdminStats() {
                 </Card>
             </div>
 
-            {/* Hot Games & Recent Activity */}
             <div className="grid gap-6 lg:grid-cols-2">
-                {/* Hot Games Ranking */}
                 <Card className="p-6">
                     <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         🔥 Hot Games Ranking
@@ -173,14 +167,12 @@ export default function AdminStats() {
                                     <span className="text-sm font-semibold">
                                         {game.plays.toLocaleString()} plays
                                     </span>
-                                    {/* Trend removed as backend doesn't support yet */}
                                 </div>
                             </div>
                         ))}
                     </div>
                 </Card>
 
-                {/* Recent Activity */}
                 <Card className="p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="text-lg font-semibold flex items-center gap-2">
@@ -239,7 +231,6 @@ export default function AdminStats() {
                 </Card>
             </div>
 
-            {/* Account Statistics Detail */}
             <Card className="p-6">
                 <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     📋 Account Statistics
@@ -264,7 +255,6 @@ export default function AdminStats() {
                 </div>
             </Card>
 
-            {/* Play Statistics by Game */}
             <Card className="p-6">
                 <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     🎯 Play Count by Game

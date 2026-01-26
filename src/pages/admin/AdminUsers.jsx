@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { debounce } from "@/lib/utils";
-import DeleteUserModal from "@/components/DeleteUserModal"; // Assuming this exists as per original code
+import DeleteUserModal from "@/components/DeleteUserModal"; 
 
 export default function AdminUsers() {
     const [users, setUsers] = useState([]);
@@ -13,7 +13,6 @@ export default function AdminUsers() {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
 
-    // Deletion state
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
 
@@ -21,7 +20,6 @@ export default function AdminUsers() {
         try {
             setLoading(true);
             const res = await api.get(`/api/users?page=${page}&limit=5&q=${encodeURIComponent(query || '')}`);
-            // BE returns { data, pagination }
             setUsers(res.data);
             setPagination(res.pagination);
         } catch (err) {
@@ -37,8 +35,7 @@ export default function AdminUsers() {
 
     useEffect(() => {
         fetchUsers(currentPage, searchTerm);
-    }, [currentPage, fetchUsers]); // Check only page change here, search handled by input handler for debounce
-
+    }, [currentPage, fetchUsers]); 
     const handleSearch = (e) => {
         const val = e.target.value;
         setSearchTerm(val);
@@ -52,7 +49,6 @@ export default function AdminUsers() {
 
         try {
             const res = await api.post(`/api/users/${action}/${user.id}`);
-            // Update local state
             setUsers(users.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
         } catch (err) {
             alert(`Failed to ${action} user`);
@@ -69,13 +65,12 @@ export default function AdminUsers() {
         try {
             await api.delete(`/api/users/${userToDelete.id}`);
             setDeleteModalOpen(false);
-            fetchUsers(currentPage, searchTerm); // Refresh
+            fetchUsers(currentPage, searchTerm);
         } catch (err) {
             alert("Failed to delete user");
         }
     };
 
-    // Helper for avatar color (reused)
     const getAvatarColor = (initials) => {
         const colors = [
             "bg-blue-100 text-blue-600",
@@ -93,7 +88,6 @@ export default function AdminUsers() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div>
                 <h3 className="text-2xl font-bold text-[#072D44] dark:text-white">User Management</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -101,7 +95,6 @@ export default function AdminUsers() {
                 </p>
             </div>
 
-            {/* Search */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="relative w-full sm:w-96">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -115,7 +108,6 @@ export default function AdminUsers() {
                 </div>
             </div>
 
-            {/* Users Table */}
             <div className="bg-white dark:bg-[#064469] rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
@@ -190,7 +182,6 @@ export default function AdminUsers() {
                     </table>
                 </div>
 
-                {/* Pagination */}
                 {pagination.totalPages > 1 && (
                     <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -216,12 +207,11 @@ export default function AdminUsers() {
                 )}
             </div>
 
-            {/* Delete User Modal */}
             {userToDelete && (
                 <DeleteUserModal
                     isOpen={deleteModalOpen}
                     onClose={() => setDeleteModalOpen(false)}
-                    user={userToDelete} // Pass full user object, Modal expects {username, email, ...} likely, or adjust
+                    user={userToDelete}
                     onConfirm={confirmDeleteUser}
                 />
             )}

@@ -2,7 +2,6 @@ import React from 'react';
 import { GRID_SIZE, COLORS } from '@/game-logic/utils/constants';
 
 const DotMatrix = ({ matrix, onDotClick }) => {
-    // Ensure matrix is valid, fallback to empty if not
     const safeMatrix = matrix && matrix.length === GRID_SIZE ? matrix : Array(GRID_SIZE).fill(Array(GRID_SIZE).fill(COLORS.OFF));
 
     return (

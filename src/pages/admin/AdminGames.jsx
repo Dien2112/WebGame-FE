@@ -72,14 +72,10 @@ export default function AdminGames() {
 
         if (code === 'LINE') {
             if (size < 4 || size > 5) return "Line size must be between 4 and 5.";
-            // Line Logic might expect even number total if it's based on some pair logic, 
-            // but user explicitly asked "Line size is 4 ~ 5". 
-            // 5x5 = 25 (odd), so "must be even" check might be wrong for Line if 5 is valid.
-            // Removing the even check for Line unless confirmed.
             if (time && (time < 30 || time > 120)) return "Time limit must be between 30 and 120 seconds.";
         }
 
-        return null; // Valid
+        return null;
     };
 
     const handleSaveConfig = async () => {
@@ -255,7 +251,6 @@ export default function AdminGames() {
                 ))}
             </div>
 
-            {/* Custom Modal */}
             {dialogOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-background border rounded-lg shadow-lg w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200">

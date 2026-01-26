@@ -1,8 +1,6 @@
 export const CHAR_WIDTH = 3;
 export const CHAR_HEIGHT = 5;
 
-// 1 = ON, 0 = OFF
-// 3x5 font
 const FONT_MAP = {
   'A': [
     [0,1,0],

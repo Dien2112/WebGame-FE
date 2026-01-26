@@ -3,20 +3,6 @@ import { createEmptyGrid, COLORS, GRID_SIZE } from './utils/constants';
 import { getCharGrid } from './utils/pixel-font';
 import { drawSprite } from './utils/menu';
 
-/**
- * Snake Game Logic
- * 
- * Admin Settings:
- * - snakeSpeed: 1-8 (default 4), where level 4 = 0.25s per move (250ms)
- *   Speed calculation: interval = 1000 / snakeSpeed (ms)
- *   Level 1 = 1000ms, Level 4 = 250ms, Level 8 = 125ms
- * - timeLimit: Game time limit in seconds (default 60)
- * - appleCoefficient: Score multiplier for apples (default 10)
- * 
- * Scoring:
- * - Win (time ends with snake alive): currentScore + (applesEaten × appleCoefficient)
- * - Lose (snake dies): -appleCoefficient
- */
 class SnakeLogic extends GameLogic {
     constructor(setMatrix, setScore, setStatus, setTimer, onExit, savedState, gameId, config = {}) {
         super(setMatrix, setScore, setStatus, onExit);
@@ -24,26 +10,19 @@ class SnakeLogic extends GameLogic {
         this.setTimer = setTimer;
         this.gameId = gameId;
         this.config = {
-            snakeSpeed: config.snakeSpeed || config.speed || 4, // 1-8, default 4
-            timeLimit: config.timeLimit || 60,  // seconds
+            snakeSpeed: config.snakeSpeed || config.speed || 4, 
+            timeLimit: config.timeLimit || 60, 
             appleCoefficient: config.appleCoefficient || 10,
-            size: config.size || GRID_SIZE // Default to full 20x20 if not set
+            size: config.size || GRID_SIZE 
         };
         
         this.gridSize = parseInt(this.config.size);
-        
-        // Initialize game state
         this.initGame(savedState);
-        
         this.setStatus('SNAKE');
     }
 
-    /**
-     * Initialize or reset game state
-     */
     initGame(savedState = null) {
         if (savedState && savedState.snake) {
-            // Restore saved state
             this.snake = savedState.snake;
             this.direction = savedState.direction || 'RIGHT';
             this.nextDirection = savedState.nextDirection || this.direction;
@@ -53,9 +32,8 @@ class SnakeLogic extends GameLogic {
             this.won = savedState.won || false;
             this.remainingTime = savedState.remainingTime || this.config.timeLimit;
             this.isPaused = savedState.isPaused || false;
-            this.gameStarted = true; // Resume saved game
+            this.gameStarted = true; 
         } else {
-            // New game - auto start
             this.snake = this.createInitialSnake();
             this.direction = 'RIGHT';
             this.nextDirection = 'RIGHT';
@@ -65,22 +43,16 @@ class SnakeLogic extends GameLogic {
             this.won = false;
             this.remainingTime = this.config.timeLimit;
             this.isPaused = false;
-            this.gameStarted = true; // Auto start game
+            this.gameStarted = true; 
         }
-        
-        // Tick is called every 100ms (10 ticks per second)
-        // Speed calculation: 0.125 * (9 - speed) seconds
-        // Converted to ms: 125 * (9 - speed)
-        // Converted to ticks (100ms): 1.25 * (9 - speed)
         const speed = this.config.snakeSpeed;
         const intervalMs = 125 * (9 - speed);
         this.ticksPerMove = Math.max(1, Math.round(intervalMs / 100));
-        this.lastMoveTick = null; // Will be set on first tick
-        this.lastSecondTick = null; // Will be set on first tick
-        this.lastMoveTick = null; // Will be set on first tick
-        this.lastSecondTick = null; // Will be set on first tick
+        this.lastMoveTick = null;
+        this.lastSecondTick = null;
+        this.lastMoveTick = null;
+        this.lastSecondTick = null;
         
-        // Reset score if new game
         if (!savedState) {
             this.score = 0;
             if (this.setScore) this.setScore(0);
@@ -90,23 +62,16 @@ class SnakeLogic extends GameLogic {
         }
     }
 
-    /**
-     * Create initial snake at center of grid
-     */
     createInitialSnake() {
         const centerY = Math.floor(this.gridSize / 2);
         const centerX = Math.floor(this.gridSize / 2) - 2;
         return [
-            { x: centerX + 2, y: centerY }, // Head
+            { x: centerX + 2, y: centerY },
             { x: centerX + 1, y: centerY },
-            { x: centerX, y: centerY }      // Tail
+            { x: centerX, y: centerY }
         ];
     }
 
-    /**
-     * Spawn apple at random position not occupied by snake
-     * Apple spawns in playable area (1 to this.gridSize-2)
-     */
     spawnApple() {
         let apple;
         let attempts = 0;
@@ -114,8 +79,8 @@ class SnakeLogic extends GameLogic {
         
         do {
             apple = {
-                x: Math.floor(Math.random() * (this.gridSize - 4)) + 2, // 2 to SIZE-3
-                y: Math.floor(Math.random() * (this.gridSize - 4)) + 2  // 2 to SIZE-3
+                x: Math.floor(Math.random() * (this.gridSize - 4)) + 2, 
+                y: Math.floor(Math.random() * (this.gridSize - 4)) + 2
             };
             attempts++;
         } while (this.isOccupiedBySnake(apple.x, apple.y) && attempts < maxAttempts);
@@ -123,39 +88,29 @@ class SnakeLogic extends GameLogic {
         return apple;
     }
 
-    /**
-     * Check if position is occupied by snake
-     */
     isOccupiedBySnake(x, y) {
         return this.snake.some(segment => segment.x === x && segment.y === y);
     }
 
-    /**
-     * Handle console button presses
-     */
     onConsolePress(action, tick) {
         if (action === 'BACK') {
             this.onExit();
             return;
         }
 
-        // Handle game over state
         if (this.gameOver) {
             if (action === 'ENTER') {
-                // Restart game
                 this.initGame();
                 return;
             }
             return;
         }
 
-        // Handle pause
         if (action === 'ENTER') {
             this.isPaused = !this.isPaused;
             return;
         }
 
-        // Handle direction changes (prevent 180-degree turns)
         switch (action) {
             case 'UP':
                 if (this.direction !== 'DOWN') this.nextDirection = 'UP';
@@ -172,33 +127,25 @@ class SnakeLogic extends GameLogic {
         }
     }
 
-    /**
-     * Main game tick - called every 100ms (10 ticks per second)
-     */
     onTick(tick) {
-        // Initialize tick trackers on first tick
         if (this.lastMoveTick === null) {
             this.lastMoveTick = tick;
             this.lastSecondTick = tick;
         }
 
-        // Update timer every 10 ticks (1 second)
         if (this.gameStarted && !this.gameOver && !this.isPaused) {
             if (tick - this.lastSecondTick >= 10) {
                 this.lastSecondTick = tick;
                 this.remainingTime--;
 
-                // Update UI Timer
                 if (this.setTimer) this.setTimer(this.remainingTime);
                 
-                // Check time limit
                 if (this.remainingTime <= 0) {
-                    this.endGame(true); // Win - survived the time? User said Time=0 game end.
+                    this.endGame(true); 
                 }
             }
         }
 
-        // Move snake based on speed interval
         if (this.gameStarted && !this.gameOver && !this.isPaused) {
             if (tick - this.lastMoveTick >= this.ticksPerMove) {
                 this.lastMoveTick = tick;
@@ -206,19 +153,13 @@ class SnakeLogic extends GameLogic {
             }
         }
 
-        // Render the game
         this.render(tick);
         this.updateStatus();
     }
 
-    /**
-     * Move the snake in current direction
-     */
     moveSnake() {
-        // Apply direction change
         this.direction = this.nextDirection;
 
-        // Calculate new head position
         const head = { ...this.snake[0] };
         
         switch (this.direction) {
@@ -236,53 +177,38 @@ class SnakeLogic extends GameLogic {
                 break;
         }
 
-        // Check collision with walls (border is at 0 and this.gridSize-1)
-        // Snake can only move in area 1 to this.gridSize-2
         if (head.x <= 0 || head.x >= this.gridSize - 1 || head.y <= 0 || head.y >= this.gridSize - 1) {
-            this.endGame(false); // Lose
+            this.endGame(false); 
             return;
         }
 
-        // Check collision with self
         if (this.isOccupiedBySnake(head.x, head.y)) {
-            this.endGame(false); // Lose
+            this.endGame(false); 
             return;
         }
 
-        // Add new head
         this.snake.unshift(head);
 
-        // Check if apple is eaten
         if (head.x === this.apple.x && head.y === this.apple.y) {
             this.applesEaten++;
             this.apple = this.spawnApple();
             
-            // Update Score immediately
             this.score = this.applesEaten * this.config.appleCoefficient;
             if (this.setScore) this.setScore(this.score);
             
-            // Don't remove tail - snake grows
         } else {
-            // Remove tail - snake moves
             this.snake.pop();
         }
     }
 
     /**
-     * End the game
-     * @param {boolean} won - true if player won (time ended), false if lost (collision)
+     * @param {boolean} won
      */
     endGame(won) {
         this.gameOver = true;
         this.won = won;
-        
-        // Submit final score logic: score - 2 * time_left
-        // Note: 'score' here implies points from apples.
-        // User said: "When eat apple: score += 10"
-        // And "When game end: finalscore = score - 2 * time_left"
-        // Let's calculate it.
-        
-        const rawScore = this.applesEaten * 10; // Fixed 10 points per apple as requested
+                
+        const rawScore = this.applesEaten * 10; 
         const penalty = 2 * this.remainingTime;
         const finalScore = rawScore - penalty;
 
@@ -290,24 +216,17 @@ class SnakeLogic extends GameLogic {
         this.setScore(this.score);
         
         if (this.gameId) {
-             console.log(`[Snake] Submitting Score: ${this.score}, ID: ${this.gameId}`);
              import('./utils/game-service').then(mod => mod.submitScore(this.gameId, this.score));
         }
 
-        // Stop timer
-        if (this.setTimer) this.setTimer(this.remainingTime); // Or null? Keep it static.
+        if (this.setTimer) this.setTimer(this.remainingTime);
     }
 
-    /**
-     * Render the game grid
-     */
     render(tick) {
-        const grid = createEmptyGrid(); // Always 20x20
+        const grid = createEmptyGrid();
 
-        // Draw border
-        // Requirements: "Change border color into another color" -> let's use CYAN
         for (let i = 0; i < this.gridSize; i++) {
-            if (i < GRID_SIZE) { // Ensure within bounds
+            if (i < GRID_SIZE) {
                 grid[0][i] = COLORS.CYAN;
                 grid[this.gridSize - 1][i] = COLORS.CYAN;
                 grid[i][0] = COLORS.CYAN;
@@ -315,14 +234,12 @@ class SnakeLogic extends GameLogic {
             }
         }
 
-        // Game over screen
         if (this.gameOver) {
             this.renderGameOver(grid, tick);
             this.setMatrix(grid);
             return;
         }
 
-        // Pause screen
         if (this.isPaused) {
             drawSprite(grid, getCharGrid('P'), 4, 4, COLORS.YELLOW);
             drawSprite(grid, getCharGrid('A'), 4, 9, COLORS.YELLOW);
@@ -333,7 +250,6 @@ class SnakeLogic extends GameLogic {
             return;
         }
 
-        // Draw apple (blinking effect)
         if (this.apple && Math.floor(tick / 5) % 2 === 0) {
             if (this.apple.y >= 0 && this.apple.y < this.gridSize && 
                 this.apple.x >= 0 && this.apple.x < this.gridSize) {
@@ -341,15 +257,12 @@ class SnakeLogic extends GameLogic {
             }
         }
 
-        // Draw snake
         this.snake.forEach((segment, index) => {
             if (segment.y >= 0 && segment.y < this.gridSize && 
                 segment.x >= 0 && segment.x < this.gridSize) {
                 if (index === 0) {
-                    // Head - darker color
                     grid[segment.y][segment.x] = COLORS.BLACK;
                 } else {
-                    // Body
                     grid[segment.y][segment.x] = COLORS.PURPLE;
                 }
             }
@@ -358,19 +271,14 @@ class SnakeLogic extends GameLogic {
         this.setMatrix(grid);
     }
 
-    /**
-     * Render game over screen
-     */
     renderGameOver(grid, tick) {
         if (this.won) {
-            // WIN screen - spacing 6 pixels between letters
             if (Math.floor(tick / 10) % 2 === 0) {
                 drawSprite(grid, getCharGrid('W'), 6, 1, COLORS.YELLOW);
                 drawSprite(grid, getCharGrid('I'), 6, 7, COLORS.YELLOW);
                 drawSprite(grid, getCharGrid('N'), 6, 13, COLORS.YELLOW);
             }
         } else {
-            // LOSE screen
             if (Math.floor(tick / 10) % 2 === 0) {
                 drawSprite(grid, getCharGrid('L'), 6, 1, COLORS.RED);
                 drawSprite(grid, getCharGrid('O'), 6, 6, COLORS.RED);
@@ -379,18 +287,14 @@ class SnakeLogic extends GameLogic {
             }
         }
         
-        // Show score
         const scoreStr = Math.abs(this.score).toString();
-        const startX = Math.floor((GRID_SIZE - scoreStr.length * 5) / 2); // Center on full grid
+        const startX = Math.floor((GRID_SIZE - scoreStr.length * 5) / 2); 
         scoreStr.split('').forEach((char, i) => {
             drawSprite(grid, getCharGrid(char), 12, startX + i * 5, 
                 this.won ? COLORS.YELLOW : COLORS.RED);
         });
     }
 
-    /**
-     * Update status bar
-     */
     updateStatus() {
         if (this.gameOver) {
             if (this.won) {
@@ -408,9 +312,6 @@ class SnakeLogic extends GameLogic {
         }
     }
 
-    /**
-     * Get current game state for saving
-     */
     getSaveData() {
         return {
             snake: this.snake,
@@ -422,22 +323,16 @@ class SnakeLogic extends GameLogic {
             won: this.won,
             remainingTime: this.remainingTime,
             isPaused: this.isPaused,
-            // Added Requirements: width: 19, height: 19, (border property?)
             width: this.gridSize, 
             height: this.gridSize,
             border: true
         };
     }
 
-    /**
-     * Preview for scenario selection
-     */
     preview(saveData, tick) {
         if (saveData && saveData.snake) {
-            // Render saved game state
             const grid = createEmptyGrid();
             
-            // Draw border
             for (let i = 0; i < GRID_SIZE; i++) {
                 grid[0][i] = COLORS.BLUE;
                 grid[GRID_SIZE - 1][i] = COLORS.BLUE;
@@ -445,12 +340,10 @@ class SnakeLogic extends GameLogic {
                 grid[i][GRID_SIZE - 1] = COLORS.BLUE;
             }
             
-            // Draw apple
             if (saveData.apple && Math.floor(tick / 5) % 2 === 0) {
                 grid[saveData.apple.y][saveData.apple.x] = COLORS.RED;
             }
             
-            // Draw snake
             saveData.snake.forEach((segment, index) => {
                 if (segment.y >= 0 && segment.y < GRID_SIZE && 
                     segment.x >= 0 && segment.x < GRID_SIZE) {
@@ -461,12 +354,8 @@ class SnakeLogic extends GameLogic {
             return grid;
         }
         
-        // New Game: No border, different text
         const grid = createEmptyGrid();
         
-        // No Border
-        
-        // Text/Logo
         if (Math.floor(tick / 10) % 2 === 0) {
              drawSprite(grid, getCharGrid('S'), 6, 8, COLORS.GREEN);
         } else {
@@ -477,8 +366,7 @@ class SnakeLogic extends GameLogic {
     }
 
     /**
-     * Calculate final score based on game result
-     * @returns {number} Final score
+     * @returns {number}
      */
     calculateFinalScore() {
         if (this.won) {

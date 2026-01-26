@@ -18,11 +18,9 @@ export const AuthProvider = ({ children }) => {
 
     const fetchProfile = async () => {
         try {
-            // api.get handles Authorization header automatically via localStorage
             const data = await api.get('/api/auth/me');
             setUser(data.user);
         } catch (error) {
-            // If error (e.g. 401), we assume token is bad
             console.error("Auth check failed:", error);
             logout();
         } finally {
